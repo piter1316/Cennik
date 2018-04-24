@@ -5,6 +5,7 @@ cursor = database.cursor()
 
 def clickSearchButton():
     kodTowaru = inputField_1.get()
+    print("test")
 
 
     sql = "SELECT * FROM __PILZ_Cennik_copy WHERE kodTowaru = '{}'".format(kodTowaru)
