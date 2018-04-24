@@ -31,7 +31,7 @@ def clickSearchButton():
             outputField.insert(tk.INSERT,product)
             outputField.insert(tk.END, "\n")
 
-
+    #kontrola
     except:
         print('NIE ZNALEZIONO')
 def clickClearResults():
