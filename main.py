@@ -1,8 +1,8 @@
 import tkinter as tk
+from tkinter import messagebox
 import tkinter.ttk
 
 import pymysql
-
 
 window_1 = tk.Tk()
 window_1.maxsize(width=1280, height=720)
@@ -11,15 +11,12 @@ window_1.title('CENNIKI')
 resultTable = tkinter.ttk.Treeview(window_1)
 
 
-
 database = pymysql.connect('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
-
 cursor = database.cursor()
 
 def clickSearchButton():
 
     kodTowaru = inputField_1.get()
-
     sql = "SELECT * FROM "+"`"+optionMenuValue.get()+"`"+ " WHERE kodTowaru = '{}'".format(kodTowaru)
 
     cursor.execute(sql)
@@ -27,46 +24,45 @@ def clickSearchButton():
     results = cursor.fetchall()
     outputField.config(state=tk.NORMAL)
 
-    try:
-        for row in results:
+    if len(results)>0:
 
-            kontrahent = row[1]
-            kontrahentCennik = row[2]
-            cenaKoncowa = row[7]
-            cenaKatalogowaEUR = row[8]
-            rabat= row[10]
-            zDnia = row[11]
-            cenaKonEUR = row[9]
+        try:
+            for row in results:
 
-            cenaKatalogowaEUR = round(cenaKatalogowaEUR,2)
-            cenaKonEUR = round(cenaKonEUR,2)
-            rabat = round(rabat,2)
+                kontrahent = row[1]
+                kontrahentCennik = row[2]
+                cenaKoncowa = row[7]
+                cenaKatalogowaEUR = row[8]
+                rabat= row[10]
+                zDnia = row[11]
+                cenaKonEUR = row[9]
 
-            product= []
-            product.append(kontrahent)
-            product.append(kontrahentCennik)
-            product.append(cenaKoncowa)
-            product.append(cenaKatalogowaEUR)
-            product.append(rabat)
-            product.append(zDnia)
-            product.append(cenaKonEUR)
+                cenaKatalogowaEUR = round(cenaKatalogowaEUR,2)
+                cenaKonEUR = round(cenaKonEUR,2)
+                rabat = round(rabat,2)
 
+                product= []
+                product.append(kontrahent)
+                product.append(kontrahentCennik)
+                product.append(cenaKoncowa)
+                product.append(cenaKatalogowaEUR)
+                product.append(rabat)
+                product.append(zDnia)
+                product.append(cenaKonEUR)
 
+                outputField.insert(tk.INSERT,product)
+                outputField.insert(tk.END, '\n')
+                outputField.insert(tk.END, '______________________________________________________________________\n')
 
+                resultTable.insert("", 0, values=(kontrahent, kontrahentCennik, cenaKoncowa, cenaKatalogowaEUR, rabat, cenaKonEUR, zDnia))
+                print("dodano do wyswietlenia")
 
-            outputField.insert(tk.INSERT,product)
-            # outputKontrahent.insert(tk.INSERT,product[0])
-            # outputKontrahent.insert(tk.END, '\n')
-            outputField.insert(tk.END, '\n')
-            outputField.insert(tk.END, '______________________________________________________________________\n')
-            resultTable.insert("", 0, values=(kontrahent, kontrahentCennik, cenaKoncowa, cenaKatalogowaEUR, rabat, cenaKonEUR, zDnia))
+        except:
+            print('NIE ZNALEZIONO')
+    else:
+        messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
+        print("nic")
 
-
-
-
-    #kontrola
-    except:
-        print('NIE ZNALEZIONO')
     outputField.config(state=tk.DISABLED)
 
 
@@ -81,7 +77,6 @@ def clickClearResults():
 
 def getTablesList():
     cursor = database.cursor()
-
     cursor.execute("SHOW TABLES in b2b_robocza LIKE 'zestaw%' ")
 
     tables = cursor.fetchall()
@@ -90,10 +85,6 @@ def getTablesList():
         getTables_list.append(table_name)
 
     return getTables_list
-
-
-
-
 
 resultTable["columns"] = ("kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia")
 resultTable.column("kontrahent", width=100)
@@ -112,13 +103,6 @@ resultTable.heading("cenaKoncowaEUR", text="cenaKoncowaEUR")
 resultTable.heading("zDnia", text="zDnia")
 
 
-
-
-
-
-
-
-
 resultTable.grid(row=0, column=0)
 
 searchButton = tk.Button(window_1, text='WYSZUKAJ', command=clickSearchButton)
@@ -131,34 +115,20 @@ searchTextField = tk.Label(window_1, text='Podaj kod Towaru: ')
 searchTextField.grid(row=1,column=0)
 
 inputField_1 = tk.Entry(window_1)
-
 inputField_1.grid(row=2, column=0)
 inputField_1.focus()
 
 outputField = tk.Text()
-
 outputField.grid(row=8, column=0)
 outputField.config(state=tk.DISABLED)
 
-scrollbar = tk.Scrollbar(window_1, command=outputField.yview)
-#scrollbar.grid(row=1, column=5, sticky=tk.N)
-
-scrollbar.size()
-outputField['yscrollcommand'] = scrollbar.set
+scrollbar = tk.Scrollbar(window_1, command=resultTable.yview)
+scrollbar.grid(row=0, column=2, sticky=tk.N)
 
 optionMenuValue = tk.StringVar(window_1)
-optionMenuValue.set("WYBIERZ CENNIK")
+optionMenuValue.set(getTablesList()[0])
 
 tables_list = tk.OptionMenu(window_1, optionMenuValue, *getTablesList())
-
-# tables_list.pack()
 tables_list.grid(row=3, column=0, rowspan=2, sticky=tk.N)
-
-# outputKontrahent=tk.Text()
-# outputKontrahent.grid(row=0, column=1, columnspan=2, rowspan=2,
-#                       sticky=tk.W + tk.E + tk.N + tk.S, padx=5, pady=5)
-#
-# outputCennik=tk.Text()
-# outputCennik.grid(row=0,column=3)
 
 window_1.mainloop()
