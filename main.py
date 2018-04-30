@@ -1,13 +1,12 @@
 import tkinter as tk
 import tkinter.ttk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, ttk
 from typing import List, Any
 import pymysql
 import xlsxwriter
 
-# global dabase
-number_added = 0
 data = []
+even = 0
 
 
 def connect_to_database(url, user, password, data_base_name):
@@ -21,8 +20,8 @@ def disconect_from_database(database):
     database.close()
 
 
-def define_result_table(frame, mode, columns):
-    table = tkinter.ttk.Treeview(frame, selectmode=mode, columns=columns)
+def define_result_table(frame, mode, columns, style):
+    table = tkinter.ttk.Treeview(frame, selectmode=mode, columns=columns, style=style)
     return table
 
 
@@ -56,7 +55,7 @@ def set_result_table(result_table):
     return result_table
 
 
-def show_table(result_table, row, column):
+def show_table(result_table, row, column, ):
     result_table.grid(row=row, column=column)
 
 
@@ -120,40 +119,29 @@ def insert_data_into_table():
                 product.append(z_dnia)
                 data.append(product)
 
-                result_table.insert("", "end", values=(
-                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat, cena_kon_eur,
-                    z_dnia))
-
-            result_table.insert("", "end", values=(
-                '----------', '----------', '----------', '----------', '----------', '----------', '----------',
-                '----------'))
-
-            print(data)
+                if even % 2 == 0:
+                    result_table.insert("", "end", values=(
+                        kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                        cena_kon_eur,
+                        z_dnia), tags='evenrow')
+                else:
+                    result_table.insert("", "end", values=(
+                        kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                        cena_kon_eur,
+                        z_dnia), tags='oddrow')
         except:
             messagebox.showinfo("Błąd POBIERANIA DANYCH")
+
     else:
         messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
 
 
 def click_search_button():
+    global even
+    even += 1
     fetch_data_from_database()
     insert_data_into_table()
-
-
-# def click_clear_selected_results():
-#     if len(result_table.selection())==0:
-#         messagebox.showinfo('PUSTO!!!', 'Lista jest pusta!')
-#     elif len(result_table.selection()) > 0:
-#         for i in result_table.selection():
-#             result_table.delete(i)
-#     else:
-#         messagebox.showinfo('WYBIERZ!!!', 'Nie wybrano elementu do usunięcia!')
-
-
-def delete_last_query():
-    number_to_delete = number_added
-    for i in range(0, number_to_delete):
-        data.pop()
+    print(even)
 
 
 def export_to_xls(data):
@@ -231,16 +219,22 @@ window_1 = set_window('CENNIK', 1000, 480)
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
 result_table = define_result_table(window_1, "extended", (
-    "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"))
+    "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
+                                   "Custom.Treeview")
 
 set_result_table(result_table)
 show_table(result_table, 0, 0)
+style = ttk.Style(window_1)
+style.theme_use("clam")
+style.configure("Treeview", background="#FFE4C4",
+                fieldbackground="#FFE4C4", foreground="black")
+
+result_table.tag_configure('oddrow', background='orange')
+result_table.tag_configure('evenrow', background='OrangeRed')
 
 searchButton = set_button(window_1, 'WYSZUKAJ', click_search_button, 5, 0)
 
 clearButton = set_button(window_1, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 6, 0)
-
-# undo_button = set_button(window_1, "USUń ZAZNACZONE ELEMENTY", click_clear_selected_results, 7, 0)
 
 exportButton = set_button(window_1, "Export do pliku .xlsx", click_export, 8, 0)
 
