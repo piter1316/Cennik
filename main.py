@@ -92,45 +92,50 @@ def fetch_data_from_database():
 
 def insert_data_into_table():
     if len(fetch_data_from_database()) > 0:
-        try:
 
-            for row in fetch_data_from_database():
-                kod_towaru = row[0]
-                kontrahent = row[1]
-                kontrahent_cennik = row[2]
-                cena_koncowa = row[7]
-                cena_katalogowa_eur = row[8]
-                rabat = row[10]
-                z_dnia = row[11]
-                cena_kon_eur = row[9]
+
+        for row in fetch_data_from_database():
+            kod_towaru = row[0]
+            kontrahent = row[1]
+            kontrahent_cennik = row[2]
+            cena_koncowa = row[7]
+            cena_katalogowa_eur = row[8]
+            rabat = row[10]
+            z_dnia = row[11]
+            cena_kon_eur = row[9]
+
+            if cena_katalogowa_eur is not None:
 
                 cena_katalogowa_eur = round(cena_katalogowa_eur, 2)
-                cena_kon_eur = round(cena_kon_eur, 2)
-                rabat = round(rabat, 2)
+            else:
+                cena_katalogowa_eur = ""
 
-                product = []
-                product.append(kod_towaru)
-                product.append(kontrahent)
-                product.append(kontrahent_cennik)
-                product.append(cena_koncowa)
-                product.append(cena_katalogowa_eur)
-                product.append(rabat)
-                product.append(cena_kon_eur)
-                product.append(z_dnia)
-                data.append(product)
+            cena_kon_eur = round(cena_kon_eur, 2)
+            rabat = round(rabat, 2)
 
-                if even % 2 == 0:
-                    result_table.insert("", "end", values=(
-                        kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                        cena_kon_eur,
-                        z_dnia), tags='evenrow')
-                else:
-                    result_table.insert("", "end", values=(
-                        kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                        cena_kon_eur,
-                        z_dnia), tags='oddrow')
-        except:
-            messagebox.showinfo("Błąd POBIERANIA DANYCH")
+            product = []
+            product.append(kod_towaru)
+            product.append(kontrahent)
+            product.append(kontrahent_cennik)
+            product.append(cena_koncowa)
+            product.append(cena_katalogowa_eur)
+            product.append(rabat)
+            product.append(cena_kon_eur)
+            product.append(z_dnia)
+            data.append(product)
+
+            if even % 2 == 0:
+                result_table.insert("", "end", values=(
+                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                    cena_kon_eur,
+                    z_dnia), tags='evenrow')
+            else:
+                result_table.insert("", "end", values=(
+                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                    cena_kon_eur,
+                    z_dnia), tags='oddrow')
+
+        #messagebox.showinfo("Błąd POBIERANIA DANYCH")
 
     else:
         messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
@@ -141,7 +146,6 @@ def click_search_button():
     even += 1
     fetch_data_from_database()
     insert_data_into_table()
-    print(even)
 
 
 def export_to_xls(data):
