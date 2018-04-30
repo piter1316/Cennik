@@ -1,33 +1,51 @@
 import tkinter as tk
+import xlsxwriter
 from tkinter import messagebox
 import tkinter.ttk
 import pymysql
+#global dabase
+data = []
+
 
 def connectToDatabase(url,user,password,dataBaseName):
     database = pymysql.connect(url,user,password,dataBaseName)
     global cursor
     cursor= database.cursor()
     return database
+def disconectFromDatabase(database):
+    database.close()
+
 def defineResultTable(frame,mode,columns):
     table = tkinter.ttk.Treeview(frame,selectmode=mode,columns=columns)
     return table
 
 def setResultTable(resultTable):
-    resultTable.column("kontrahent", width=150)
-    resultTable.column("cennik", width=80)
-    resultTable.column("cenaKoncowa", width=100)
-    resultTable.column("cenaKatalogowa", width=100)
-    resultTable.column("Rabat", width=60)
-    resultTable.column("cenaKoncowaEUR", width=110)
-    resultTable.column("zDnia", width=80)
+    resultTable.heading("kodTowaru",text="kod")
+    resultTable.column("kodTowaru", width=130)
+
     resultTable.heading("kontrahent", text="kontrahent")
+    resultTable.column("kontrahent", width=150)
+
     resultTable.heading("cennik", text="cennik")
-    resultTable.heading("cenaKoncowa", text="cenaKoncowa")
-    resultTable.heading("cenaKatalogowa", text="cenaKatalogowa")
+    resultTable.column("cennik", width=80)
+
+    resultTable.heading("cenaKoncowa", text="cenaKoncowa[wal]")
+    resultTable.column("cenaKoncowa", width=110)
+
+    resultTable.heading("cenaKatalogowa", text="cenaKatalogowa[€]")
+    resultTable.column("cenaKatalogowa", width=110)
+
     resultTable.heading("Rabat", text="Rabat")
-    resultTable.heading("cenaKoncowaEUR", text="cenaKoncowaEUR")
+    resultTable.column("Rabat", width=50)
+
+    resultTable.heading("cenaKoncowaEUR", text="cenaKoncowa[€]")
+    resultTable.column("cenaKoncowaEUR", width=110)
+
     resultTable.heading("zDnia", text="zDnia")
+    resultTable.column("zDnia", width=80)
+
     resultTable['show'] = 'headings'
+
     return resultTable
 
 def showTable(resultTable,row,column):
@@ -49,52 +67,75 @@ def prepareSqlSelectQuery():
     sql = "SELECT * FROM " + "`" + optionMenuValue.get() + "`" + " WHERE kodTowaru = '{}'".format(kodTowaru)
     return sql
 
-def clickSearchButton():
-
+def fetchDataFromDatabase():
     try:
         cursor.execute(prepareSqlSelectQuery())
 
         results = cursor.fetchall()
-
-        if len(results)>0:
-
-            try:
-                for row in results:
-
-                    kontrahent = row[1]
-                    kontrahentCennik = row[2]
-                    cenaKoncowa = row[7]
-                    cenaKatalogowaEUR = row[8]
-                    rabat= row[10]
-                    zDnia = row[11]
-                    cenaKonEUR = row[9]
-
-                    cenaKatalogowaEUR = round(cenaKatalogowaEUR,2)
-                    cenaKonEUR = round(cenaKonEUR,2)
-                    rabat = round(rabat,2)
-
-                    product= []
-                    product.append(kontrahent)
-                    product.append(kontrahentCennik)
-                    product.append(cenaKoncowa)
-                    product.append(cenaKatalogowaEUR)
-                    product.append(rabat)
-                    product.append(zDnia)
-                    product.append(cenaKonEUR)
-                    resultTable.insert("", 1, values=(kontrahent, kontrahentCennik, cenaKoncowa, cenaKatalogowaEUR, rabat, cenaKonEUR, zDnia))
-
-            except:
-                messagebox.showinfo("Błąd POBIERANIA DANYCH")
-
-                print('NIE ZNALEZIONO')
-        else:
-            messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
     except:
-        messagebox.showinfo("Błąd","Podana Baza danych nie istnieje!")
+        messagebox.showinfo("Błąd", "Podana Baza danych nie istnieje!")
+
+    return results
+
+def insertDataIntoTable():
+    if len(fetchDataFromDatabase())>0:
+        try:
+
+            for row in fetchDataFromDatabase():
+                kodTowaru = row[0]
+                kontrahent = row[1]
+                kontrahentCennik = row[2]
+                cenaKoncowa = row[7]
+                cenaKatalogowaEUR = row[8]
+                rabat= row[10]
+                zDnia = row[11]
+                cenaKonEUR = row[9]
+
+                cenaKatalogowaEUR = round(cenaKatalogowaEUR,2)
+                cenaKonEUR = round(cenaKonEUR,2)
+                rabat = round(rabat,2)
+
+                product= []
+                product.append(kodTowaru)
+                product.append(kontrahent)
+                product.append(kontrahentCennik)
+                product.append(cenaKoncowa)
+                product.append(cenaKatalogowaEUR)
+                product.append(rabat)
+                product.append(cenaKonEUR)
+                product.append(zDnia)
+                data.append(product)
+
+                resultTable.insert("", "end", values=(kodTowaru,kontrahent, kontrahentCennik, cenaKoncowa, cenaKatalogowaEUR, rabat, cenaKonEUR, zDnia))
+        except:
+            messagebox.showinfo("Błąd POBIERANIA DANYCH")
+    else:
+        messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
+
+def clickSearchButton():
+
+    fetchDataFromDatabase()
+    insertDataIntoTable()
 
 def clickClearResults():
     for i in resultTable.get_children():
         resultTable.delete(i)
+
+def exportToXls(data):
+
+    workbook = xlsxwriter.Workbook('arrays.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.write_row(0,0,["kodTowaru","kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa_EUR", "Rabat", "cenaKoncowaEUR", "zDnia"])
+    row=0
+
+
+    for col, data in enumerate(data):
+        col = col + 1
+        worksheet.write_row(col, row, data)
+    workbook.close()
+
+def clickExport():
+    exportToXls(data)
 
 def getTablesList():
     cursor = database.cursor()
@@ -128,13 +169,12 @@ def setInputField(frame,row,column):
     field.grid(row=row, column=column)
     return field
 
-
 #main
-window_1 = setWindow('CENNIK',720,480)
+window_1 = setWindow('CENNIK',1000,480)
 
 database = connectToDatabase('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
-resultTable = defineResultTable(window_1,"extended",("kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"))
+resultTable = defineResultTable(window_1,"extended",("kodTowaru","kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"))
 
 setResultTable(resultTable)
 showTable(resultTable,0,0)
@@ -143,9 +183,11 @@ searchButton = setButton(window_1,'WYSZUKAJ',clickSearchButton,5,0)
 
 clearButton = setButton(window_1,"WYCZYŚć WYSZUKIWANIE",clickClearResults,6,0)
 
+exportButton = setButton(window_1,"Export do pliku",clickExport,7,0)
+
 searchTextLabel = setLabel(window_1, 'Podaj kod Towaru: ', 1, 0)
 
-inputField_1 = setInputField(window_1,2,0) #tk.Entry(window_1)
+inputField_1 = setInputField(window_1,2,0)
 inputField_1.focus()
 
 scrollbar = tk.Scrollbar(window_1, command=resultTable.yview)
@@ -158,3 +200,4 @@ tables_list = tk.OptionMenu(window_1, optionMenuValue, *getTablesList())
 tables_list.grid(row=3, column=0, rowspan=2, sticky=tk.N)
 
 window_1.mainloop()
+disconectFromDatabase(database)
