@@ -6,6 +6,7 @@ import pymysql
 import xlsxwriter
 
 # global dabase
+number_added = 0
 data = []
 
 
@@ -126,6 +127,8 @@ def insert_data_into_table():
             result_table.insert("", "end", values=(
                 '----------', '----------', '----------', '----------', '----------', '----------', '----------',
                 '----------'))
+
+            print(data)
         except:
             messagebox.showinfo("Błąd POBIERANIA DANYCH")
     else:
@@ -137,9 +140,20 @@ def click_search_button():
     insert_data_into_table()
 
 
-def click_clear_results():
-    for i in result_table.get_children():
-        result_table.delete(i)
+# def click_clear_selected_results():
+#     if len(result_table.selection())==0:
+#         messagebox.showinfo('PUSTO!!!', 'Lista jest pusta!')
+#     elif len(result_table.selection()) > 0:
+#         for i in result_table.selection():
+#             result_table.delete(i)
+#     else:
+#         messagebox.showinfo('WYBIERZ!!!', 'Nie wybrano elementu do usunięcia!')
+
+
+def delete_last_query():
+    number_to_delete = number_added
+    for i in range(0, number_to_delete):
+        data.pop()
 
 
 def export_to_xls(data):
@@ -147,17 +161,20 @@ def export_to_xls(data):
                                                   title="Select file",
                                                   filetypes=(("Excel", "*.xlsx"), ("all files", "*.*")),
                                                   defaultextension='.xlsx')
+    try:
+        workbook = xlsxwriter.Workbook(save_directory)
+        worksheet = workbook.add_worksheet()
+        worksheet.write_row(0, 0, ["kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa_EUR", "Rabat",
+                                   "cenaKoncowaEUR", "zDnia"])
+        row = 0
 
-    workbook = xlsxwriter.Workbook(save_directory)
-    worksheet = workbook.add_worksheet()
-    worksheet.write_row(0, 0, ["kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa_EUR", "Rabat",
-                               "cenaKoncowaEUR", "zDnia"])
-    row = 0
-
-    for col, data in enumerate(data):
-        col = col + 1
-        worksheet.write_row(col, row, data)
-    workbook.close()
+        for col, data in enumerate(data):
+            col = col + 1
+            worksheet.write_row(col, row, data)
+        workbook.close()
+        messagebox.showinfo('ZAPISANO', "ZAPISANO w Lokalizacji: {}".format(save_directory))
+    except:
+        messagebox.showinfo("ANULOWANO", "ANULOWANO ZAPIS")
 
 
 def click_export():
@@ -166,7 +183,7 @@ def click_export():
 
 def get_tables_list():
     cursor = database.cursor()
-    cursor.execute("SHOW TABLES in b2b_robocza LIKE 'zestaw%' ")
+    cursor.execute("SHOW TABLES in b2b_robocza LIKE 'zestaw%Cennik' ")
     tables = cursor.fetchall()
     list_items: List[Any] = []
 
@@ -201,6 +218,13 @@ def set_input_field(frame, row, column):
     return field
 
 
+def click_clear_results():
+    for i in result_table.get_children():
+        result_table.delete(i)
+    for i in range(len(data)):
+        data.pop()
+
+
 # main
 window_1 = set_window('CENNIK', 1000, 480)
 
@@ -216,7 +240,9 @@ searchButton = set_button(window_1, 'WYSZUKAJ', click_search_button, 5, 0)
 
 clearButton = set_button(window_1, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 6, 0)
 
-exportButton = set_button(window_1, "Export do pliku .xlsx", click_export, 7, 0)
+# undo_button = set_button(window_1, "USUń ZAZNACZONE ELEMENTY", click_clear_selected_results, 7, 0)
+
+exportButton = set_button(window_1, "Export do pliku .xlsx", click_export, 8, 0)
 
 searchTextLabel = set_label(window_1, 'Podaj kod Towaru: ', 1, 0)
 
