@@ -2,11 +2,14 @@ import tkinter as tk
 import tkinter.ttk
 from tkinter import messagebox, filedialog, ttk
 from typing import List, Any
+
 import pymysql
 import xlsxwriter
 
+# global variables
 data = []
 even = 0
+how_many_added = 0
 
 
 def connect_to_database(url, user, password, data_base_name):
@@ -25,38 +28,38 @@ def define_result_table(frame, mode, columns, style):
     return table
 
 
-def set_result_table(result_table):
-    result_table.heading("kodTowaru", text="kodTowaru")
-    result_table.column("kodTowaru", width=130)
+def set_result_table(tree_view_obj):
+    tree_view_obj.heading("kodTowaru", text="kodTowaru")
+    tree_view_obj.column("kodTowaru", width=130)
 
-    result_table.heading("kontrahent", text="kontrahent")
-    result_table.column("kontrahent", width=150)
+    tree_view_obj.heading("kontrahent", text="kontrahent")
+    tree_view_obj.column("kontrahent", width=150)
 
-    result_table.heading("cennik", text="cennik")
-    result_table.column("cennik", width=80)
+    tree_view_obj.heading("cennik", text="cennik")
+    tree_view_obj.column("cennik", width=80)
 
-    result_table.heading("cenaKoncowa", text="cenaKoncowa[wal]")
-    result_table.column("cenaKoncowa", width=110)
+    tree_view_obj.heading("cenaKoncowa", text="cenaKoncowa[wal]")
+    tree_view_obj.column("cenaKoncowa", width=110)
 
-    result_table.heading("cenaKatalogowa", text="cenaKatalogowa[€]")
-    result_table.column("cenaKatalogowa", width=110)
+    tree_view_obj.heading("cenaKatalogowa", text="cenaKatalogowa[€]")
+    tree_view_obj.column("cenaKatalogowa", width=110)
 
-    result_table.heading("Rabat", text="Rabat")
-    result_table.column("Rabat", width=50)
+    tree_view_obj.heading("Rabat", text="Rabat")
+    tree_view_obj.column("Rabat", width=50)
 
-    result_table.heading("cenaKoncowaEUR", text="cenaKoncowa[€]")
-    result_table.column("cenaKoncowaEUR", width=110)
+    tree_view_obj.heading("cenaKoncowaEUR", text="cenaKoncowa[€]")
+    tree_view_obj.column("cenaKoncowaEUR", width=110)
 
-    result_table.heading("zDnia", text="zDnia")
-    result_table.column("zDnia", width=80)
+    tree_view_obj.heading("zDnia", text="zDnia")
+    tree_view_obj.column("zDnia", width=80)
 
-    result_table['show'] = 'headings'
+    tree_view_obj['show'] = 'headings'
 
-    return result_table
+    return tree_view_obj
 
 
-def show_table(result_table, row, column, ):
-    result_table.grid(row=row, column=column)
+def show_table(tree_view_obj, row, column, ):
+    tree_view_obj.grid(row=row, column=column)
 
 
 def prepare_sql_select_query():
@@ -82,7 +85,6 @@ def prepare_sql_select_query():
 def fetch_data_from_database():
     try:
         cursor.execute(prepare_sql_select_query())
-
         results = cursor.fetchall()
     except:
         messagebox.showinfo("Błąd", "Podana Baza danych nie istnieje!")
@@ -91,8 +93,11 @@ def fetch_data_from_database():
 
 
 def insert_data_into_table():
-    if len(fetch_data_from_database()) > 0:
-
+    global how_many_added
+    how_many_added = 0
+    if len(inputField_1.get()) == 0:
+        messagebox.showinfo("Pusto","PODAJ KOD!!!")
+    elif len(fetch_data_from_database()) > 0:
 
         for row in fetch_data_from_database():
             kod_towaru = row[0]
@@ -105,13 +110,19 @@ def insert_data_into_table():
             cena_kon_eur = row[9]
 
             if cena_katalogowa_eur is not None:
-
                 cena_katalogowa_eur = round(cena_katalogowa_eur, 2)
             else:
                 cena_katalogowa_eur = ""
 
-            cena_kon_eur = round(cena_kon_eur, 2)
-            rabat = round(rabat, 2)
+            if cena_kon_eur is not None:
+                cena_kon_eur = round(cena_kon_eur, 2)
+            else:
+                cena_kon_eur = ""
+
+            if rabat is not None:
+                rabat = round(rabat, 2)
+            else:
+                rabat = ""
 
             product = []
             product.append(kod_towaru)
@@ -124,18 +135,22 @@ def insert_data_into_table():
             product.append(z_dnia)
             data.append(product)
 
+            how_many_added += 1
+            # undo_button.config(state=tk.NORMAL)
+            # clear_button.config(state=tk.NORMAL)
+            button_active(data)
+
             if even % 2 == 0:
                 result_table.insert("", "end", values=(
                     kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
                     cena_kon_eur,
                     z_dnia), tags='evenrow')
+
             else:
                 result_table.insert("", "end", values=(
                     kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
                     cena_kon_eur,
                     z_dnia), tags='oddrow')
-
-        #messagebox.showinfo("Błąd POBIERANIA DANYCH")
 
     else:
         messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
@@ -148,7 +163,7 @@ def click_search_button():
     insert_data_into_table()
 
 
-def export_to_xls(data):
+def export_to_xls(data_as_list):
     save_directory = filedialog.asksaveasfilename(initialdir="/",
                                                   title="Select file",
                                                   filetypes=(("Excel", "*.xlsx"), ("all files", "*.*")),
@@ -160,9 +175,9 @@ def export_to_xls(data):
                                    "cenaKoncowaEUR", "zDnia"])
         row = 0
 
-        for col, data in enumerate(data):
-            col = col + 1
-            worksheet.write_row(col, row, data)
+        for col, data_as_list in enumerate(data_as_list):
+            col += 1
+            worksheet.write_row(col, row, data_as_list)
         workbook.close()
         messagebox.showinfo('ZAPISANO', "ZAPISANO w Lokalizacji: {}".format(save_directory))
     except:
@@ -174,7 +189,7 @@ def click_export():
 
 
 def get_tables_list():
-    cursor = database.cursor()
+    #cursor = database.cursor()
     cursor.execute("SHOW TABLES in b2b_robocza LIKE 'zestaw%Cennik' ")
     tables = cursor.fetchall()
     list_items: List[Any] = []
@@ -211,13 +226,56 @@ def set_input_field(frame, row, column):
 
 
 def click_clear_results():
-    for i in result_table.get_children():
-        result_table.delete(i)
+    for node in result_table.get_children():
+        result_table.delete(node)
     for i in range(len(data)):
         data.pop()
+    clear_button.config(state=tk.DISABLED)
+    undo_button.config(state=tk.DISABLED)
+    button_active(data)
 
 
-# main
+def undo_search():
+    global how_many_added
+    if len(data) > 0:
+
+        for i in range(len(data) - how_many_added, len(data)):
+            data.pop()
+
+        all_nodes = []
+        for element in result_table.get_children():
+            all_nodes.append(element)
+
+        nodes_to_delete = []
+        for i in range(len(all_nodes) - how_many_added, len(all_nodes)):
+            nodes_to_delete.append(all_nodes[i])
+
+        for node in nodes_to_delete:
+            result_table.delete(node)
+    else:
+        pass
+    how_many_added = 0
+    global even
+    even += 1
+    undo_button.config(state=tk.DISABLED)
+
+    button_active(data)
+
+
+def click_undo_button():
+    undo_search()
+    undo_button.config(state=tk.DISABLED)
+
+def button_active(list):
+    if len(list) == 0:
+        export_button.config(state=tk.DISABLED)
+        undo_button.config(state=tk.DISABLED)
+        clear_button.config(state=tk.DISABLED)
+    else:
+        export_button.config(state=tk.NORMAL)
+        undo_button.config(state=tk.NORMAL)
+        clear_button.config(state=tk.NORMAL)
+
 window_1 = set_window('CENNIK', 1000, 480)
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
@@ -226,23 +284,35 @@ result_table = define_result_table(window_1, "extended", (
     "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
                                    "Custom.Treeview")
 
+#table with query results
 set_result_table(result_table)
 show_table(result_table, 0, 0)
+
+# style of table
 style = ttk.Style(window_1)
 style.theme_use("clam")
 style.configure("Treeview", background="#FFE4C4",
                 fieldbackground="#FFE4C4", foreground="black")
 
+#table colors for different search
 result_table.tag_configure('oddrow', background='orange')
 result_table.tag_configure('evenrow', background='OrangeRed')
 
-searchButton = set_button(window_1, 'WYSZUKAJ', click_search_button, 5, 0)
+search_button = set_button(window_1, 'WYSZUKAJ', click_search_button, 5, 0)
 
-clearButton = set_button(window_1, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 6, 0)
+clear_button = set_button(window_1, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 6, 0)
+clear_button.config(state=tk.DISABLED)
 
-exportButton = set_button(window_1, "Export do pliku .xlsx", click_export, 8, 0)
+export_button = set_button(window_1, "Export do pliku .xlsx", click_export, 8, 0)
+export_button.config(state=tk.DISABLED)
 
-searchTextLabel = set_label(window_1, 'Podaj kod Towaru: ', 1, 0)
+undo_button = set_button(window_1, "Cofinj wyszukiwanie", click_undo_button, 9, 0)
+if len(data)>0:
+    undo_button.config(state=tk.NORMAL)
+else:
+    undo_button.config(state=tk.DISABLED)
+
+search_text_label = set_label(window_1, 'Podaj kod Towaru: ', 1, 0)
 
 inputField_1 = set_input_field(window_1, 2, 0)
 inputField_1.focus()
