@@ -61,6 +61,7 @@ def set_result_table(tree_view_obj):
 def show_table(tree_view_obj, row, column, ):
     tree_view_obj.grid(row=row, column=column)
 
+
 def prepare_sql_select_query():
     kod_towaru = str(inputField_1.get())
     kod_towaru = kod_towaru.replace('"', '')
@@ -91,13 +92,16 @@ def fetch_data_from_database():
 
 
 def insert_data_into_table():
+    global even
     global how_many_added
+
     how_many_added = 0
     if len(inputField_1.get()) == 0:
         messagebox.showinfo("Pusto", "PODAJ KOD!!!")
     elif len(fetch_data_from_database()) > 0:
 
         for row in fetch_data_from_database():
+
             kod_towaru = row[0]
             kontrahent = row[1]
             kontrahent_cennik = row[2]
@@ -128,6 +132,9 @@ def insert_data_into_table():
 
             how_many_added += 1
 
+
+
+
             if even % 2 == 0:
                 result_table.insert("", "end", values=(
                     kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
@@ -139,14 +146,14 @@ def insert_data_into_table():
                     kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
                     cena_kon_eur,
                     z_dnia), tags='oddrow')
-
+        even += 1
     else:
         messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
 
 
 def click_search_button():
-    global even
-    even += 1
+
+
     fetch_data_from_database()
     insert_data_into_table()
     button_active(data)
@@ -225,6 +232,7 @@ def click_clear_results():
 def undo_search():
     global how_many_added
     global even
+
     if len(data) > 0:
 
         for i in range(len(data) - how_many_added, len(data)):
@@ -245,6 +253,7 @@ def undo_search():
     how_many_added = 0
     even += 1
 
+
     button_active(data)
 
 
@@ -263,21 +272,21 @@ def button_active(list_with_data):
         undo_button.config(state=tk.NORMAL)
         clear_button.config(state=tk.NORMAL)
 
-#main
+
+# main
 window_1 = set_window('CENNIK', 1000, 480)
 
 tool_bar = tk.Frame(window_1)
-tool_bar.pack(side=tk.TOP,fill=tk.X)
+tool_bar.pack(side=tk.TOP, fill=tk.X)
 
-result_field= tk.Frame(window_1)
-result_field.pack(side=tk.TOP,fill=tk.X)
+result_field = tk.Frame(window_1)
+result_field.pack(side=tk.TOP, fill=tk.X)
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
 result_table = define_result_table(result_field, "extended", (
     "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
                                    "Custom.Treeview")
-
 
 search_text_label = set_label(tool_bar, 'Podaj kod Towaru: ', 0, 1)
 
@@ -305,7 +314,7 @@ set_result_table(result_table)
 result_table.pack(side=tk.LEFT, fill=tk.X)
 
 # style of table
-result_table_style = ttk.Style(window_1)
+result_table_style = ttk.Style(result_field)
 result_table_style.theme_use("clam")
 result_table_style.configure("Treeview", background="#FFE4C4",
                              fieldbackground="#FFE4C4", foreground="black")
@@ -315,8 +324,7 @@ result_table.tag_configure('oddrow', background='orange')
 result_table.tag_configure('evenrow', background='OrangeRed')
 
 scrollbar = tk.Scrollbar(result_field, command=result_table.yview)
-scrollbar.pack(side=tk.LEFT,fill=tk.Y)
-
+scrollbar.pack(side=tk.LEFT, fill=tk.Y)
 
 window_1.mainloop()
 disconnect_from_database(database)
