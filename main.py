@@ -7,20 +7,20 @@ import pymysql
 import xlsxwriter
 
 # global variables
-data = []
+data: List[Any] = []
 even = 0
 how_many_added = 0
 
 
 def connect_to_database(url, user, password, data_base_name):
-    database = pymysql.connect(url, user, password, data_base_name)
+    database_to_connect = pymysql.connect(url, user, password, data_base_name)
     global cursor
-    cursor = database.cursor()
-    return database
+    cursor = database_to_connect.cursor()
+    return database_to_connect
 
 
-def disconect_from_database(database):
-    database.close()
+def disconnect_from_database(database_to_disconect):
+    database_to_disconect.close()
 
 
 def define_result_table(frame, mode, columns, style):
@@ -61,7 +61,6 @@ def set_result_table(tree_view_obj):
 def show_table(tree_view_obj, row, column, ):
     tree_view_obj.grid(row=row, column=column)
 
-
 def prepare_sql_select_query():
     kod_towaru = str(inputField_1.get())
     kod_towaru = kod_towaru.replace('"', '')
@@ -86,17 +85,16 @@ def fetch_data_from_database():
     try:
         cursor.execute(prepare_sql_select_query())
         results = cursor.fetchall()
-    except:
+        return results
+    except Exception.__name__:
         messagebox.showinfo("Błąd", "Podana Baza danych nie istnieje!")
-
-    return results
 
 
 def insert_data_into_table():
     global how_many_added
     how_many_added = 0
     if len(inputField_1.get()) == 0:
-        messagebox.showinfo("Pusto","PODAJ KOD!!!")
+        messagebox.showinfo("Pusto", "PODAJ KOD!!!")
     elif len(fetch_data_from_database()) > 0:
 
         for row in fetch_data_from_database():
@@ -124,21 +122,11 @@ def insert_data_into_table():
             else:
                 rabat = ""
 
-            product = []
-            product.append(kod_towaru)
-            product.append(kontrahent)
-            product.append(kontrahent_cennik)
-            product.append(cena_koncowa)
-            product.append(cena_katalogowa_eur)
-            product.append(rabat)
-            product.append(cena_kon_eur)
-            product.append(z_dnia)
+            product = [kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                       cena_kon_eur, z_dnia]
             data.append(product)
 
             how_many_added += 1
-            # undo_button.config(state=tk.NORMAL)
-            # clear_button.config(state=tk.NORMAL)
-            button_active(data)
 
             if even % 2 == 0:
                 result_table.insert("", "end", values=(
@@ -161,6 +149,7 @@ def click_search_button():
     even += 1
     fetch_data_from_database()
     insert_data_into_table()
+    button_active(data)
 
 
 def export_to_xls(data_as_list):
@@ -171,8 +160,9 @@ def export_to_xls(data_as_list):
     try:
         workbook = xlsxwriter.Workbook(save_directory)
         worksheet = workbook.add_worksheet()
-        worksheet.write_row(0, 0, ["kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa_EUR", "Rabat",
-                                   "cenaKoncowaEUR", "zDnia"])
+        worksheet.write_row(0, 0,
+                            ["kodTowaru", "kontrahent", "cennik", "cenaKoncowa_WAL", "cenaKatalogowa_EUR", "Rabat",
+                             "cenaKoncowa_EUR", "zDnia"])
         row = 0
 
         for col, data_as_list in enumerate(data_as_list):
@@ -180,7 +170,7 @@ def export_to_xls(data_as_list):
             worksheet.write_row(col, row, data_as_list)
         workbook.close()
         messagebox.showinfo('ZAPISANO', "ZAPISANO w Lokalizacji: {}".format(save_directory))
-    except:
+    except Exception.__name__:
         messagebox.showinfo("ANULOWANO", "ANULOWANO ZAPIS")
 
 
@@ -189,7 +179,6 @@ def click_export():
 
 
 def get_tables_list():
-    #cursor = database.cursor()
     cursor.execute("SHOW TABLES in b2b_robocza LIKE 'zestaw%Cennik' ")
     tables = cursor.fetchall()
     list_items: List[Any] = []
@@ -230,13 +219,12 @@ def click_clear_results():
         result_table.delete(node)
     for i in range(len(data)):
         data.pop()
-    clear_button.config(state=tk.DISABLED)
-    undo_button.config(state=tk.DISABLED)
     button_active(data)
 
 
 def undo_search():
     global how_many_added
+    global even
     if len(data) > 0:
 
         for i in range(len(data) - how_many_added, len(data)):
@@ -255,9 +243,7 @@ def undo_search():
     else:
         pass
     how_many_added = 0
-    global even
     even += 1
-    undo_button.config(state=tk.DISABLED)
 
     button_active(data)
 
@@ -266,8 +252,9 @@ def click_undo_button():
     undo_search()
     undo_button.config(state=tk.DISABLED)
 
-def button_active(list):
-    if len(list) == 0:
+
+def button_active(list_with_data):
+    if len(list_with_data) == 0:
         export_button.config(state=tk.DISABLED)
         undo_button.config(state=tk.DISABLED)
         clear_button.config(state=tk.DISABLED)
@@ -276,55 +263,60 @@ def button_active(list):
         undo_button.config(state=tk.NORMAL)
         clear_button.config(state=tk.NORMAL)
 
+#main
 window_1 = set_window('CENNIK', 1000, 480)
+
+tool_bar = tk.Frame(window_1)
+tool_bar.pack(side=tk.TOP,fill=tk.X)
+
+result_field= tk.Frame(window_1)
+result_field.pack(side=tk.TOP,fill=tk.X)
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
-result_table = define_result_table(window_1, "extended", (
+result_table = define_result_table(result_field, "extended", (
     "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
                                    "Custom.Treeview")
 
-#table with query results
-set_result_table(result_table)
-show_table(result_table, 0, 0)
 
-# style of table
-style = ttk.Style(window_1)
-style.theme_use("clam")
-style.configure("Treeview", background="#FFE4C4",
-                fieldbackground="#FFE4C4", foreground="black")
+search_text_label = set_label(tool_bar, 'Podaj kod Towaru: ', 0, 1)
 
-#table colors for different search
-result_table.tag_configure('oddrow', background='orange')
-result_table.tag_configure('evenrow', background='OrangeRed')
+inputField_1 = set_input_field(tool_bar, 0, 2)
 
-search_button = set_button(window_1, 'WYSZUKAJ', click_search_button, 5, 0)
+search_button = set_button(tool_bar, 'WYSZUKAJ', click_search_button, 0, 4)
 
-clear_button = set_button(window_1, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 6, 0)
+clear_button = set_button(tool_bar, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 0, 5)
 clear_button.config(state=tk.DISABLED)
 
-export_button = set_button(window_1, "Export do pliku .xlsx", click_export, 8, 0)
+export_button = set_button(tool_bar, "Export do EXCELA (.xlsx)", click_export, 0, 6)
 export_button.config(state=tk.DISABLED)
 
-undo_button = set_button(window_1, "Cofinj wyszukiwanie", click_undo_button, 9, 0)
-if len(data)>0:
-    undo_button.config(state=tk.NORMAL)
-else:
-    undo_button.config(state=tk.DISABLED)
-
-search_text_label = set_label(window_1, 'Podaj kod Towaru: ', 1, 0)
-
-inputField_1 = set_input_field(window_1, 2, 0)
-inputField_1.focus()
-
-scrollbar = tk.Scrollbar(window_1, command=result_table.yview)
-scrollbar.grid(row=0, column=2, sticky=tk.N)
+undo_button = set_button(tool_bar, "Cofinj wyszukiwanie", click_undo_button, 0, 7)
+undo_button.config(state=tk.DISABLED)
 
 optionMenuValue = tk.StringVar(window_1)
 optionMenuValue.set(get_tables_list()[0])
 
-tables_list = tk.OptionMenu(window_1, optionMenuValue, *get_tables_list())
-tables_list.grid(row=3, column=0, rowspan=2, sticky=tk.N)
+tables_list = tk.OptionMenu(tool_bar, optionMenuValue, *get_tables_list())
+tables_list.grid(row=0, column=3)
+
+# table with query results
+set_result_table(result_table)
+result_table.pack(side=tk.LEFT, fill=tk.X)
+
+# style of table
+result_table_style = ttk.Style(window_1)
+result_table_style.theme_use("clam")
+result_table_style.configure("Treeview", background="#FFE4C4",
+                             fieldbackground="#FFE4C4", foreground="black")
+
+# table colors for different search
+result_table.tag_configure('oddrow', background='orange')
+result_table.tag_configure('evenrow', background='OrangeRed')
+
+scrollbar = tk.Scrollbar(result_field, command=result_table.yview)
+scrollbar.pack(side=tk.LEFT,fill=tk.Y)
+
 
 window_1.mainloop()
-disconect_from_database(database)
+disconnect_from_database(database)
