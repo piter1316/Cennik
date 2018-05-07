@@ -1,14 +1,15 @@
 import tkinter as tk
 import tkinter.ttk
 from tkinter import messagebox, filedialog, ttk
+from tkinter.ttk import Treeview
 from typing import List, Any
 
 import pymysql
 import xlsxwriter
 
-# global variables
 from Create_tool_tip import Create_tool_tip
 
+# global variables
 data: List[Any] = []
 even = 0
 how_many_added = 0
@@ -21,8 +22,8 @@ def connect_to_database(url, user, password, data_base_name):
     return database_to_connect
 
 
-def disconnect_from_database(database_to_disconect):
-    database_to_disconect.close()
+def disconnect_from_database(database_to_disconnect):
+    database_to_disconnect.close()
 
 
 def define_result_table(frame, mode, columns, style):
@@ -35,10 +36,10 @@ def set_button_with_text(frame, text, command, row, column):
     button.grid(row=row, column=column)
     return button
 
-def set_button_with_img(frame,width, height, image,command, row, column):
 
-    button = tk.Button(frame,width=width, height=height,image=image, command=command)
-    button.grid(row=row, column=column)
+def set_button_with_img(frame, width, height, image, command, row, column, padx):
+    button = tk.Button(frame, width=width, height=height, image=image, command=command)
+    button.grid(row=row, column=column, padx=padx)
     return button
 
 
@@ -48,17 +49,18 @@ def set_label(frame, text, row, column):
     return label
 
 
-def set_window(title, width, height):
+def set_window(title, width, height, bg_color):
     window = tk.Tk()
     window.maxsize(width=width, height=height)
     window.minsize(width=width, height=height)
     window.title(title)
+    window.configure(background=bg_color)
     return window
 
 
-def set_input_field(frame, row, column):
-    field = tk.Entry(frame)
-    field.grid(row=row, column=column)
+def set_input_field(frame, row, column, padx, relief):
+    field = tk.Entry(frame, relief=relief)
+    field.grid(row=row, column=column, padx=padx)
     return field
 
 
@@ -111,7 +113,7 @@ def prepare_sql_select_query():
 
     sql = "SELECT * FROM " \
           + \
-          "`" + optionMenuValue.get() + "`" \
+          "`" + option_menu_value.get() + "`" \
           + " WHERE kodTowaru = '{}' ORDER BY cenaKoncowa_EUR".format(kod_towaru)
     return sql
 
@@ -121,7 +123,7 @@ def fetch_data_from_database():
         cursor.execute(prepare_sql_select_query())
         results = cursor.fetchall()
         return results
-    except Exception.__name__:
+    except Exception:
         messagebox.showinfo("Błąd", "Podana Baza danych nie istnieje!")
 
 
@@ -189,7 +191,6 @@ def click_search_button():
     button_active(data)
 
 
-
 def click_export():
     export_to_xls(data)
 
@@ -207,6 +208,7 @@ def click_undo_button():
     undo_search()
     undo_button.config(state=tk.DISABLED)
     inputField_1.delete(0, 'end')
+
 
 def export_to_xls(data_as_list):
     save_directory = filedialog.asksaveasfilename(initialdir="/",
@@ -275,55 +277,67 @@ def button_active(list_with_data):
         export_button.config(state=tk.NORMAL)
         undo_button.config(state=tk.NORMAL)
         clear_button.config(state=tk.NORMAL)
+
+
 def press_enter_to_search(event):
     click_search_button()
 
 
 # main
-window_1 = set_window('CENNIK', 1000, 480)
+window_1 = set_window('CENNIK', 900, 480, '#c6c3c0')
 window_1.bind('<Return>', press_enter_to_search)
+
+icon = tk.PhotoImage(file='img/indeks.png')
+window_1.tk.call('wm', 'iconphoto', window_1._w, icon)
 
 tool_bar = tk.Frame(window_1)
 tool_bar.pack(side=tk.TOP, fill=tk.X)
+tool_bar.configure(background='#c6c3c0')
 
 result_field = tk.Frame(window_1)
-result_field.pack(side=tk.TOP, fill=tk.X)
+result_field.pack(side=tk.TOP, fill=tk.Y)
+result_field.configure(background='#c6c3c0')
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
-result_table = define_result_table(result_field, "extended", (
+result_table: Treeview = define_result_table(result_field, "extended", (
     "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
                                    "Custom.Treeview")
 
+scrollbar = tk.Scrollbar(result_field, orient="vertical", command=result_table.yview)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+result_table.configure(yscrollcommand=scrollbar.set)
 search_text_label = set_label(tool_bar, 'Podaj kod Towaru: ', 0, 1)
+search_text_label.configure(background='#c6c3c0')
 
-inputField_1 = set_input_field(tool_bar, 0, 2)
-
+inputField_1 = set_input_field(tool_bar, 0, 2, 5, tk.RAISED)
 
 search_img = tk.PhotoImage(file='img/search.png')
-search_button = set_button_with_img(tool_bar,20,20,search_img,click_search_button,0,4)
-search_button_tip = Create_tool_tip(search_button, "WYSZUKAJ",'black')
+search_button = set_button_with_img(tool_bar, 20, 20, search_img, click_search_button, 0, 4, 0)
+search_button_tip = Create_tool_tip(search_button, "WYSZUKAJ", '#FF6B00')
 
-clear_button = set_button_with_text(tool_bar, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 0, 5)
+clear_button_img = tk.PhotoImage(file='img/clear_all.png')
+clear_button = set_button_with_img(tool_bar, 20, 20, clear_button_img, click_clear_results, 0, 5, 0)
 clear_button.config(state=tk.DISABLED)
-
+clear_button_tip = Create_tool_tip(clear_button, 'Wyczyść wyszukiwania', 'black', 'white')
 
 export_img = tk.PhotoImage(file='img/Excel-icon.png')
-export_button = set_button_with_img(tool_bar,20,20,export_img,click_export,0,6)
+export_button = set_button_with_img(tool_bar, 20, 20, export_img, click_export, 0, 6, 0)
 export_button.config(state=tk.DISABLED)
-export_button_tip = Create_tool_tip(export_button,"Export do EXCELA",'#1D7044')
+export_button_tip = Create_tool_tip(export_button, "Export do EXCELA", '#1D7044', 'white')
 
 undo_img = tk.PhotoImage(file='img/undo.gif')
-undo_button = set_button_with_img(tool_bar,20,20,undo_img,click_undo_button,0,7)
+undo_button = set_button_with_img(tool_bar, 20, 20, undo_img, click_undo_button, 0, 7, 0)
 undo_button.config(state=tk.DISABLED)
-undo_button_tip = Create_tool_tip(undo_button,"Cofnij wyszukiwanie", '#396ED6')
+undo_button_tip = Create_tool_tip(undo_button, "Cofnij wyszukiwanie", '#396ED6', 'white')
 
+option_menu_value = tk.StringVar(window_1)
+option_menu_value.set(get_tables_list()[0])
 
-optionMenuValue = tk.StringVar(window_1)
-optionMenuValue.set(get_tables_list()[0])
-
-tables_list = tk.OptionMenu(tool_bar, optionMenuValue, *get_tables_list())
-tables_list.grid(row=0, column=3)
+tables_list = tk.OptionMenu(tool_bar, option_menu_value, *get_tables_list())
+tables_list.grid(row=0, column=3, padx=5)
+tables_list_tip = Create_tool_tip(tables_list, 'Wybierz cennik', 'yellow')
 
 # table with query results
 set_result_table(result_table)
@@ -338,9 +352,6 @@ result_table_style.configure("Treeview", background="#FFE4C4",
 # table colors for different search
 result_table.tag_configure('oddrow', background='orange')
 result_table.tag_configure('evenrow', background='OrangeRed')
-
-scrollbar = tk.Scrollbar(result_field, command=result_table.yview)
-scrollbar.pack(side=tk.LEFT, fill=tk.Y)
 
 window_1.mainloop()
 disconnect_from_database(database)
