@@ -7,6 +7,8 @@ import pymysql
 import xlsxwriter
 
 # global variables
+from Create_tool_tip import Create_tool_tip
+
 data: List[Any] = []
 even = 0
 how_many_added = 0
@@ -26,6 +28,38 @@ def disconnect_from_database(database_to_disconect):
 def define_result_table(frame, mode, columns, style):
     table = tkinter.ttk.Treeview(frame, selectmode=mode, columns=columns, style=style)
     return table
+
+
+def set_button_with_text(frame, text, command, row, column):
+    button = tk.Button(frame, text=text, command=command)
+    button.grid(row=row, column=column)
+    return button
+
+def set_button_with_img(frame,width, height, image,command, row, column):
+
+    button = tk.Button(frame,width=width, height=height,image=image, command=command)
+    button.grid(row=row, column=column)
+    return button
+
+
+def set_label(frame, text, row, column):
+    label = tk.Label(frame, text=text)
+    label.grid(row=row, column=column)
+    return label
+
+
+def set_window(title, width, height):
+    window = tk.Tk()
+    window.maxsize(width=width, height=height)
+    window.minsize(width=width, height=height)
+    window.title(title)
+    return window
+
+
+def set_input_field(frame, row, column):
+    field = tk.Entry(frame)
+    field.grid(row=row, column=column)
+    return field
 
 
 def set_result_table(tree_view_obj):
@@ -132,9 +166,6 @@ def insert_data_into_table():
 
             how_many_added += 1
 
-
-
-
             if even % 2 == 0:
                 result_table.insert("", "end", values=(
                     kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
@@ -147,17 +178,35 @@ def insert_data_into_table():
                     cena_kon_eur,
                     z_dnia), tags='oddrow')
         even += 1
+        inputField_1.delete(0, 'end')
     else:
         messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
 
 
 def click_search_button():
-
-
     fetch_data_from_database()
     insert_data_into_table()
     button_active(data)
 
+
+
+def click_export():
+    export_to_xls(data)
+
+
+def click_clear_results():
+    for node in result_table.get_children():
+        result_table.delete(node)
+    for i in range(len(data)):
+        data.pop()
+    inputField_1.delete(0, 'end')
+    button_active(data)
+
+
+def click_undo_button():
+    undo_search()
+    undo_button.config(state=tk.DISABLED)
+    inputField_1.delete(0, 'end')
 
 def export_to_xls(data_as_list):
     save_directory = filedialog.asksaveasfilename(initialdir="/",
@@ -177,12 +226,8 @@ def export_to_xls(data_as_list):
             worksheet.write_row(col, row, data_as_list)
         workbook.close()
         messagebox.showinfo('ZAPISANO', "ZAPISANO w Lokalizacji: {}".format(save_directory))
-    except Exception.__name__:
+    except Exception:
         messagebox.showinfo("ANULOWANO", "ANULOWANO ZAPIS")
-
-
-def click_export():
-    export_to_xls(data)
 
 
 def get_tables_list():
@@ -193,40 +238,6 @@ def get_tables_list():
     for (table_name,) in tables:
         list_items.append(table_name)
     return list_items
-
-
-def set_button(frame, text, command, row, column):
-    button = tk.Button(frame, text=text, command=command)
-    button.grid(row=row, column=column)
-    return button
-
-
-def set_label(frame, text, row, column):
-    label = tk.Label(frame, text=text)
-    label.grid(row=row, column=column)
-    return label
-
-
-def set_window(title, width, height):
-    window = tk.Tk()
-    window.maxsize(width=width, height=height)
-    window.minsize(width=width, height=height)
-    window.title(title)
-    return window
-
-
-def set_input_field(frame, row, column):
-    field = tk.Entry(frame)
-    field.grid(row=row, column=column)
-    return field
-
-
-def click_clear_results():
-    for node in result_table.get_children():
-        result_table.delete(node)
-    for i in range(len(data)):
-        data.pop()
-    button_active(data)
 
 
 def undo_search():
@@ -252,14 +263,7 @@ def undo_search():
         pass
     how_many_added = 0
     even += 1
-
-
     button_active(data)
-
-
-def click_undo_button():
-    undo_search()
-    undo_button.config(state=tk.DISABLED)
 
 
 def button_active(list_with_data):
@@ -271,10 +275,13 @@ def button_active(list_with_data):
         export_button.config(state=tk.NORMAL)
         undo_button.config(state=tk.NORMAL)
         clear_button.config(state=tk.NORMAL)
+def press_enter_to_search(event):
+    click_search_button()
 
 
 # main
 window_1 = set_window('CENNIK', 1000, 480)
+window_1.bind('<Return>', press_enter_to_search)
 
 tool_bar = tk.Frame(window_1)
 tool_bar.pack(side=tk.TOP, fill=tk.X)
@@ -292,16 +299,25 @@ search_text_label = set_label(tool_bar, 'Podaj kod Towaru: ', 0, 1)
 
 inputField_1 = set_input_field(tool_bar, 0, 2)
 
-search_button = set_button(tool_bar, 'WYSZUKAJ', click_search_button, 0, 4)
 
-clear_button = set_button(tool_bar, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 0, 5)
+search_img = tk.PhotoImage(file='img/search.png')
+search_button = set_button_with_img(tool_bar,20,20,search_img,click_search_button,0,4)
+search_button_tip = Create_tool_tip(search_button, "WYSZUKAJ",'black')
+
+clear_button = set_button_with_text(tool_bar, "WYCZYŚć WYSZUKIWANIE", click_clear_results, 0, 5)
 clear_button.config(state=tk.DISABLED)
 
-export_button = set_button(tool_bar, "Export do EXCELA (.xlsx)", click_export, 0, 6)
-export_button.config(state=tk.DISABLED)
 
-undo_button = set_button(tool_bar, "Cofinj wyszukiwanie", click_undo_button, 0, 7)
+export_img = tk.PhotoImage(file='img/Excel-icon.png')
+export_button = set_button_with_img(tool_bar,20,20,export_img,click_export,0,6)
+export_button.config(state=tk.DISABLED)
+export_button_tip = Create_tool_tip(export_button,"Export do EXCELA",'#1D7044')
+
+undo_img = tk.PhotoImage(file='img/undo.gif')
+undo_button = set_button_with_img(tool_bar,20,20,undo_img,click_undo_button,0,7)
 undo_button.config(state=tk.DISABLED)
+undo_button_tip = Create_tool_tip(undo_button,"Cofnij wyszukiwanie", '#396ED6')
+
 
 optionMenuValue = tk.StringVar(window_1)
 optionMenuValue.set(get_tables_list()[0])
