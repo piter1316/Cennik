@@ -55,6 +55,11 @@ def set_window(title, width, height, bg_color):
     window.minsize(width=width, height=height)
     window.title(title)
     window.configure(background=bg_color)
+    ws = window.winfo_screenwidth()  # width of the screen
+    hs = window.winfo_screenheight()
+    x = (ws / 2) - (width / 2)
+    y = (hs / 2) - (height / 2)
+    window.geometry('100x100+{}+{}'.format(int(x), int(y)))
     return window
 
 
@@ -182,7 +187,9 @@ def insert_data_into_table():
         even += 1
         inputField_1.delete(0, 'end')
     else:
-        messagebox.showinfo("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
+
+        messagebox.showerror("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
+
 
 
 def click_search_button():
@@ -284,14 +291,17 @@ def press_enter_to_search(event):
 
 
 # main
-window_1 = set_window('CENNIK', 900, 480, '#c6c3c0')
+
+window_1 = set_window('CENNIK', 900, 450, '#c6c3c0')
+
+
 window_1.bind('<Return>', press_enter_to_search)
 
 icon = tk.PhotoImage(file='img/indeks.png')
 window_1.tk.call('wm', 'iconphoto', window_1._w, icon)
 
 tool_bar = tk.Frame(window_1)
-tool_bar.pack(side=tk.TOP, fill=tk.X)
+tool_bar.pack(side=tk.TOP, fill=tk.Y)
 tool_bar.configure(background='#c6c3c0')
 
 result_field = tk.Frame(window_1)
@@ -312,23 +322,24 @@ search_text_label = set_label(tool_bar, 'Podaj kod Towaru: ', 0, 1)
 search_text_label.configure(background='#c6c3c0')
 
 inputField_1 = set_input_field(tool_bar, 0, 2, 5, tk.RAISED)
+inputField_1.focus()
 
 search_img = tk.PhotoImage(file='img/search.png')
-search_button = set_button_with_img(tool_bar, 20, 20, search_img, click_search_button, 0, 4, 0)
+search_button = set_button_with_img(tool_bar, 20, 20, search_img, click_search_button, 0, 4, 1)
 search_button_tip = Create_tool_tip(search_button, "WYSZUKAJ", '#FF6B00')
 
 clear_button_img = tk.PhotoImage(file='img/clear_all.png')
-clear_button = set_button_with_img(tool_bar, 20, 20, clear_button_img, click_clear_results, 0, 5, 0)
+clear_button = set_button_with_img(tool_bar, 20, 20, clear_button_img, click_clear_results, 0, 5, 1)
 clear_button.config(state=tk.DISABLED)
 clear_button_tip = Create_tool_tip(clear_button, 'Wyczyść wyszukiwania', 'black', 'white')
 
 export_img = tk.PhotoImage(file='img/Excel-icon.png')
-export_button = set_button_with_img(tool_bar, 20, 20, export_img, click_export, 0, 6, 0)
+export_button = set_button_with_img(tool_bar, 20, 20, export_img, click_export, 0, 6, 1)
 export_button.config(state=tk.DISABLED)
 export_button_tip = Create_tool_tip(export_button, "Export do EXCELA", '#1D7044', 'white')
 
 undo_img = tk.PhotoImage(file='img/undo.gif')
-undo_button = set_button_with_img(tool_bar, 20, 20, undo_img, click_undo_button, 0, 7, 0)
+undo_button = set_button_with_img(tool_bar, 20, 20, undo_img, click_undo_button, 0, 7, 1)
 undo_button.config(state=tk.DISABLED)
 undo_button_tip = Create_tool_tip(undo_button, "Cofnij wyszukiwanie", '#396ED6', 'white')
 
