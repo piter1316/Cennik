@@ -59,7 +59,7 @@ def set_window(title, width, height, bg_color):
     hs = window.winfo_screenheight()
     x = (ws / 2) - (width / 2)
     y = (hs / 2) - (height / 2)
-    window.geometry('100x100+{}+{}'.format(int(x), int(y)))
+    window.geometry('{}x{}+{}+{}'.format(int(width), int(height), int(x), int(y)))
     return window
 
 
@@ -191,7 +191,6 @@ def insert_data_into_table():
         messagebox.showerror("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
 
 
-
 def click_search_button():
     fetch_data_from_database()
     insert_data_into_table()
@@ -294,7 +293,6 @@ def press_enter_to_search(event):
 
 window_1 = set_window('CENNIK', 900, 450, '#c6c3c0')
 
-
 window_1.bind('<Return>', press_enter_to_search)
 
 icon = tk.PhotoImage(file='img/indeks.png')
@@ -312,7 +310,7 @@ database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_robocz
 
 result_table: Treeview = define_result_table(result_field, "extended", (
     "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
-                                   "Custom.Treeview")
+                                             "Custom.Treeview")
 
 scrollbar = tk.Scrollbar(result_field, orient="vertical", command=result_table.yview)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
