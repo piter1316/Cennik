@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.ttk
+from string import whitespace
 from tkinter import messagebox, filedialog, ttk
 from tkinter.ttk import Treeview
 from typing import List, Any
@@ -11,8 +12,9 @@ from Create_tool_tip import Create_tool_tip
 
 # global variables
 data: List[Any] = []
-even = 0
-how_many_added = 0
+
+just_opened = 0
+first_search = True
 
 
 def connect_to_database(url, user, password, data_base_name):
@@ -26,8 +28,8 @@ def disconnect_from_database(database_to_disconnect):
     database_to_disconnect.close()
 
 
-def define_result_table(frame, mode, columns, style):
-    table = tkinter.ttk.Treeview(frame, selectmode=mode, columns=columns, style=style)
+def define_result_table(frame, mode, columns, style, height):
+    table = tkinter.ttk.Treeview(frame, selectmode=mode, columns=columns, style=style, height=height)
     return table
 
 
@@ -69,6 +71,12 @@ def set_input_field(frame, row, column, padx, relief):
     return field
 
 
+def set_multiple_input_field(frame, row, column, padx, relief, width, height):
+    multiple_field = tk.Text(frame, relief=relief, width=width, height=height)
+    multiple_field.grid(row=row, column=column, padx=padx)
+    return multiple_field
+
+
 def set_result_table(tree_view_obj):
     tree_view_obj.heading("kodTowaru", text="kodTowaru")
     tree_view_obj.column("kodTowaru", width=130)
@@ -94,8 +102,9 @@ def set_result_table(tree_view_obj):
     tree_view_obj.heading("zDnia", text="zDnia")
     tree_view_obj.column("zDnia", width=80)
 
-    tree_view_obj['show'] = 'headings'
+    tree_view_obj
 
+    tree_view_obj['show'] = 'headings'
     return tree_view_obj
 
 
@@ -103,8 +112,8 @@ def show_table(tree_view_obj, row, column, ):
     tree_view_obj.grid(row=row, column=column)
 
 
-def prepare_sql_select_query():
-    kod_towaru = str(inputField_1.get())
+def secure_sql_query(args):
+    kod_towaru = str(args)
     kod_towaru = kod_towaru.replace('"', '')
     kod_towaru = kod_towaru.replace("'", "")
     kod_towaru = kod_towaru.replace("&", "")
@@ -115,6 +124,11 @@ def prepare_sql_select_query():
     kod_towaru = kod_towaru.replace("$", "")
     kod_towaru = kod_towaru.replace("\r", "")
     kod_towaru = kod_towaru.replace("!", "")
+    return kod_towaru
+
+
+def prepare_sql_select_query():
+    kod_towaru = secure_sql_query(inputField_1.get())
 
     sql = "SELECT * FROM " \
           + \
@@ -132,14 +146,16 @@ def fetch_data_from_database():
         messagebox.showinfo("Błąd", "Podana Baza danych nie istnieje!")
 
 
-def insert_data_into_table():
+def insert_single_search_into_table():
     global even
     global how_many_added
+    global just_opened
 
     how_many_added = 0
     if len(inputField_1.get()) == 0:
         messagebox.showinfo("Pusto", "PODAJ KOD!!!")
     elif len(fetch_data_from_database()) > 0:
+        clear_results()
 
         for row in fetch_data_from_database():
 
@@ -173,41 +189,63 @@ def insert_data_into_table():
 
             how_many_added += 1
 
-            if even % 2 == 0:
-                result_table.insert("", "end", values=(
-                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                    cena_kon_eur,
-                    z_dnia), tags='evenrow')
+            result_table.insert("", "end", values=(
+                kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                cena_kon_eur, z_dnia), tags='rowbg')
 
-            else:
-                result_table.insert("", "end", values=(
-                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                    cena_kon_eur,
-                    z_dnia), tags='oddrow')
-        even += 1
         inputField_1.delete(0, 'end')
+        just_opened += 1
+
     else:
 
         messagebox.showerror("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
 
 
-def click_search_button():
+def insert_multiple_search_into_table():
+    whole_text_from_multiple_input_field = multiple_input_field.get("1.0", tk.END)
+    multiple_codes_to_search = []
+    for item in whole_text_from_multiple_input_field.splitlines():
+        item = item.replace(" ", "")
+        item = secure_sql_query(item)
+        if item != '':
+            multiple_codes_to_search.append(item)
+    print(multiple_codes_to_search)
+    return multiple_codes_to_search
+
+
+def multiple_search():
+    pass
+
+
+def click_multiple_search_button():
+    insert_multiple_search_into_table()
+
+
+def single_search():
     fetch_data_from_database()
-    insert_data_into_table()
+    insert_single_search_into_table()
     button_active(data)
+
+
+def click_single_search_button():
+    single_search()
 
 
 def click_export():
     export_to_xls(data)
 
 
-def click_clear_results():
+def clear_results():
     for node in result_table.get_children():
         result_table.delete(node)
     for i in range(len(data)):
         data.pop()
-    inputField_1.delete(0, 'end')
+    # inputField_1.delete(0, 'end')
     button_active(data)
+
+
+def click_clear_results():
+    clear_results()
 
 
 def click_undo_button():
@@ -286,14 +324,12 @@ def button_active(list_with_data):
 
 
 def press_enter_to_search(event):
-    click_search_button()
+    click_single_search_button()
 
 
 # main
 
-window_1 = set_window('CENNIK', 900, 450, '#c6c3c0')
-
-window_1.bind('<Return>', press_enter_to_search)
+window_1 = set_window('CENNIK', 1100, 550, '#c6c3c0')
 
 icon = tk.PhotoImage(file='img/indeks.png')
 window_1.tk.call('wm', 'iconphoto', window_1._w, icon)
@@ -306,11 +342,21 @@ result_field = tk.Frame(window_1)
 result_field.pack(side=tk.TOP, fill=tk.Y)
 result_field.configure(background='#c6c3c0')
 
+multiple_search_field = tk.Frame(window_1)
+multiple_search_field.pack(side=tk.TOP, fill=tk.Y)
+multiple_search_field.configure(background='#c6c3c0')
+
+multiple_input_field = set_multiple_input_field(multiple_search_field, 0, 1, 2, tk.RAISED, 20, 10)
+
+multiple_text_label = set_label(multiple_search_field, 'Wyszukaj wiele: ', 0, 0)
+multiple_text_label.configure(background='#c6c3c0')
+multiple_text_label.grid(sticky=tk.N)
+
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
 result_table: Treeview = define_result_table(result_field, "extended", (
     "kodTowaru", "kontrahent", "cennik", "cenaKoncowa", "cenaKatalogowa", "Rabat", "cenaKoncowaEUR", "zDnia"),
-                                             "Custom.Treeview")
+                                             "Custom.Treeview", 12)
 
 scrollbar = tk.Scrollbar(result_field, orient="vertical", command=result_table.yview)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -321,10 +367,19 @@ search_text_label.configure(background='#c6c3c0')
 
 inputField_1 = set_input_field(tool_bar, 0, 2, 5, tk.RAISED)
 inputField_1.focus()
+inputField_1.bind('<Return>', press_enter_to_search)
 
 search_img = tk.PhotoImage(file='img/search.png')
-search_button = set_button_with_img(tool_bar, 20, 20, search_img, click_search_button, 0, 4, 1)
+search_button = set_button_with_img(tool_bar, 20, 20, search_img, click_single_search_button, 0, 4, 1)
 search_button_tip = Create_tool_tip(search_button, "WYSZUKAJ", '#FF6B00')
+
+multiple_search_button = set_button_with_img(multiple_search_field, 20, 20, search_img, click_multiple_search_button, 0,
+                                             3, 1)
+multiple_search_button.grid(sticky=tk.N)
+
+# test OUTPUT
+test_output_field = tk.Text(multiple_search_field, width=12, height=10)
+test_output_field.grid(row=0, column=4)
 
 clear_button_img = tk.PhotoImage(file='img/clear_all.png')
 clear_button = set_button_with_img(tool_bar, 20, 20, clear_button_img, click_clear_results, 0, 5, 1)
@@ -359,8 +414,7 @@ result_table_style.configure("Treeview", background="#FFE4C4",
                              fieldbackground="#FFE4C4", foreground="black")
 
 # table colors for different search
-result_table.tag_configure('oddrow', background='orange')
-result_table.tag_configure('evenrow', background='OrangeRed')
+result_table.tag_configure('rowbg', background='orange')
 
 window_1.mainloop()
 disconnect_from_database(database)
