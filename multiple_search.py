@@ -1,7 +1,7 @@
 from tkinter import messagebox
 import main
 
-from main import fetch_data_from_database, inputField_1, clear_results, data, result_table
+from main import fetch_data_from_database_for_single_search, input_field_1, clear_results, data, result_table
 
 
 def insert_multiple_search_into_table():
@@ -10,10 +10,10 @@ def insert_multiple_search_into_table():
 
     if len(main.multiple_input_field.get(0,'end')) == 0:
         messagebox.showinfo("Pusto", "PODAJ KOD!!!")
-    elif len(fetch_data_from_database()) > 0:
+    elif len(fetch_data_from_database_for_single_search()) > 0:
         clear_results()
 
-        for row in fetch_data_from_database():
+        for row in fetch_data_from_database_for_single_search():
 
             kod_towaru = row[0]
             kontrahent = row[1]
@@ -47,7 +47,7 @@ def insert_multiple_search_into_table():
                 kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
                 cena_kon_eur, z_dnia), tags='rowbg')
 
-        inputField_1.delete(0, 'end')
+        input_field_1.delete(0, 'end')
         just_opened += 1
 
     else:

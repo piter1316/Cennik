@@ -11,8 +11,9 @@ import xlsxwriter
 from Create_tool_tip import Create_tool_tip
 
 # global variables
+even = 0
 data: List[Any] = []
-
+how_many_added = 0
 just_opened = 0
 first_search = True
 
@@ -128,7 +129,7 @@ def secure_sql_query(args):
 
 
 def prepare_sql_select_query():
-    kod_towaru = secure_sql_query(inputField_1.get())
+    kod_towaru = secure_sql_query(input_field_1.get())
 
     sql = "SELECT * FROM " \
           + \
@@ -137,7 +138,7 @@ def prepare_sql_select_query():
     return sql
 
 
-def fetch_data_from_database():
+def fetch_data_from_database_for_single_search():
     try:
         cursor.execute(prepare_sql_select_query())
         results = cursor.fetchall()
@@ -146,18 +147,20 @@ def fetch_data_from_database():
         messagebox.showinfo("Błąd", "Podana Baza danych nie istnieje!")
 
 
+def fetch_data_from_database_for_multiple_search():
+    pass
+
+
 def insert_single_search_into_table():
     global even
     global how_many_added
-    global just_opened
 
     how_many_added = 0
-    if len(inputField_1.get()) == 0:
+    if len(input_field_1.get()) == 0:
         messagebox.showinfo("Pusto", "PODAJ KOD!!!")
-    elif len(fetch_data_from_database()) > 0:
-        clear_results()
+    elif len(fetch_data_from_database_for_single_search()) > 0:
 
-        for row in fetch_data_from_database():
+        for row in fetch_data_from_database_for_single_search():
 
             kod_towaru = row[0]
             kontrahent = row[1]
@@ -189,19 +192,25 @@ def insert_single_search_into_table():
 
             how_many_added += 1
 
-            result_table.insert("", "end", values=(
-                kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                cena_kon_eur, z_dnia), tags='rowbg')
+            if even % 2 == 0:
+                result_table.insert("", "end", values=(
+                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                    cena_kon_eur,
+                    z_dnia), tags='evenrow')
 
-        inputField_1.delete(0, 'end')
-        just_opened += 1
-
+            else:
+                result_table.insert("", "end", values=(
+                    kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                    cena_kon_eur,
+                    z_dnia), tags='oddrow')
+        even += 1
+        input_field_1.delete(0, 'end')
     else:
 
         messagebox.showerror("NIE ZNALEZIONO", "BRAK KODU W BAZIE")
 
 
-def insert_multiple_search_into_table():
+def insert_multiple_search_into_table(limit):
     whole_text_from_multiple_input_field = multiple_input_field.get("1.0", tk.END)
     multiple_codes_to_search = []
     for item in whole_text_from_multiple_input_field.splitlines():
@@ -209,21 +218,75 @@ def insert_multiple_search_into_table():
         item = secure_sql_query(item)
         if item != '':
             multiple_codes_to_search.append(item)
-    print(multiple_codes_to_search)
-    return multiple_codes_to_search
+    added = 0
+    for item in multiple_codes_to_search:
+        cursor.execute("SELECT * FROM " \
+                       + \
+                       "`" + option_menu_value.get() + "`" \
+                       + " WHERE kodTowaru = '{}' ORDER BY cenaKoncowa_EUR {}".format(item, limit))
+        result = cursor.fetchall()
+
+        for row in result:
+
+            kod_towaru = row[0]
+            kontrahent = row[1]
+            kontrahent_cennik = row[2]
+            cena_koncowa = row[7]
+            cena_katalogowa_eur = row[8]
+            rabat = row[10]
+            z_dnia = row[11]
+            cena_kon_eur = row[9]
+
+            if cena_katalogowa_eur is not None:
+                cena_katalogowa_eur = round(cena_katalogowa_eur, 2)
+            else:
+                cena_katalogowa_eur = ""
+
+            if cena_kon_eur is not None:
+                cena_kon_eur = round(cena_kon_eur, 2)
+            else:
+                cena_kon_eur = ""
+
+            if rabat is not None:
+                rabat = round(rabat, 2)
+            else:
+                rabat = ""
+
+            product = [kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
+                       cena_kon_eur, z_dnia]
+
+            data.append(product)
+            added += 1
+
+            values = tuple(product)
+
+            if added % 2 == 0:
+
+                result_table.insert("", "end", values=values, tags='rowbg')
+            else:
+                result_table.insert("", "end", values=values, tags='oddrow')
+
+
+def show_only_lowest_prices():
+    insert_multiple_search_into_table("LIMIT 1")
+    button_active(data)
+    calculate_sum()
 
 
 def multiple_search():
-    pass
+    insert_multiple_search_into_table("")
+    button_active(data)
 
 
 def click_multiple_search_button():
-    insert_multiple_search_into_table()
+    multiple_search()
+    calculate_sum()
 
 
 def single_search():
-    fetch_data_from_database()
+    fetch_data_from_database_for_single_search()
     insert_single_search_into_table()
+    calculate_sum()
     button_active(data)
 
 
@@ -241,6 +304,7 @@ def clear_results():
     for i in range(len(data)):
         data.pop()
     # inputField_1.delete(0, 'end')
+    sum_field.config(text='            ')
     button_active(data)
 
 
@@ -251,7 +315,7 @@ def click_clear_results():
 def click_undo_button():
     undo_search()
     undo_button.config(state=tk.DISABLED)
-    inputField_1.delete(0, 'end')
+    input_field_1.delete(0, 'end')
 
 
 def export_to_xls(data_as_list):
@@ -308,7 +372,7 @@ def undo_search():
     else:
         pass
     how_many_added = 0
-    even += 1
+    calculate_sum()
     button_active(data)
 
 
@@ -325,6 +389,18 @@ def button_active(list_with_data):
 
 def press_enter_to_search(event):
     click_single_search_button()
+
+
+def calculate_sum():
+    prices = []
+    for i in range(len(data)):
+        prices.append(data[i][6])
+
+    sum_field.config(text=str(sum(prices)))
+
+
+def clear_multiple_input_field():
+    multiple_input_field.delete("1.0", tk.END)
 
 
 # main
@@ -346,11 +422,25 @@ multiple_search_field = tk.Frame(window_1)
 multiple_search_field.pack(side=tk.TOP, fill=tk.Y)
 multiple_search_field.configure(background='#c6c3c0')
 
-multiple_input_field = set_multiple_input_field(multiple_search_field, 0, 1, 2, tk.RAISED, 20, 10)
+multiple_input_field = set_multiple_input_field(multiple_search_field, 0, 1, 2, tk.RAISED, 30, 10)
+
+clear_multiple_input_field_img = tk.PhotoImage(file='img/clear_input_field.png')
+clear_multiple_input_field_button = set_button_with_img(multiple_search_field, 30, 30, clear_multiple_input_field_img,
+                                                        clear_multiple_input_field, 0, 5, 2)
+clear_multiple_input_field_button.grid(sticky=tk.N)
+
+clear_multiple_input_field_button_tip = Create_tool_tip(clear_multiple_input_field_button, 'Wyczyść pole wprowadzania',
+                                                        '#4D4D4D', 'white')
 
 multiple_text_label = set_label(multiple_search_field, 'Wyszukaj wiele: ', 0, 0)
 multiple_text_label.configure(background='#c6c3c0')
 multiple_text_label.grid(sticky=tk.N)
+
+sum_field_label = set_label(multiple_search_field, 'SUMA [€]: ', 0, 6)
+sum_field_label.grid(sticky=tk.N)
+
+sum_field = set_label(multiple_search_field, "            ", 0, 7)
+sum_field.grid(sticky=tk.N)
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
@@ -365,21 +455,27 @@ result_table.configure(yscrollcommand=scrollbar.set)
 search_text_label = set_label(tool_bar, 'Podaj kod Towaru: ', 0, 1)
 search_text_label.configure(background='#c6c3c0')
 
-inputField_1 = set_input_field(tool_bar, 0, 2, 5, tk.RAISED)
-inputField_1.focus()
-inputField_1.bind('<Return>', press_enter_to_search)
+input_field_1 = set_input_field(tool_bar, 0, 2, 5, tk.RAISED)
+input_field_1.focus()
+input_field_1.bind('<Return>', press_enter_to_search)
 
 search_img = tk.PhotoImage(file='img/search.png')
 search_button = set_button_with_img(tool_bar, 20, 20, search_img, click_single_search_button, 0, 4, 1)
 search_button_tip = Create_tool_tip(search_button, "WYSZUKAJ", '#FF6B00')
 
-multiple_search_button = set_button_with_img(multiple_search_field, 20, 20, search_img, click_multiple_search_button, 0,
+multiple_search_button_img = tk.PhotoImage(file='img/multiple_search_img.png')
+multiple_search_button = set_button_with_img(multiple_search_field, 30, 30, multiple_search_button_img,
+                                             click_multiple_search_button, 0,
                                              3, 1)
+multiple_search_button_tip = Create_tool_tip(multiple_search_button, 'WYSZUKAJ WIELE', "aqua")
 multiple_search_button.grid(sticky=tk.N)
 
-# test OUTPUT
-test_output_field = tk.Text(multiple_search_field, width=12, height=10)
-test_output_field.grid(row=0, column=4)
+lowest_price_search_img = tk.PhotoImage(file='img/lowest_price.png')
+lowest_price_search_button = set_button_with_img(multiple_search_field, 30, 30, lowest_price_search_img,
+                                                 show_only_lowest_prices, 0, 4, 2)
+lowest_price_search_button.grid(sticky=tk.N)
+lowest_price_search_button_tip = Create_tool_tip(lowest_price_search_button, 'WYSZUKAJ TYLKO NAJNIŻSZE CENY', 'black',
+                                                 'white')
 
 clear_button_img = tk.PhotoImage(file='img/clear_all.png')
 clear_button = set_button_with_img(tool_bar, 20, 20, clear_button_img, click_clear_results, 0, 5, 1)
@@ -414,7 +510,9 @@ result_table_style.configure("Treeview", background="#FFE4C4",
                              fieldbackground="#FFE4C4", foreground="black")
 
 # table colors for different search
-result_table.tag_configure('rowbg', background='orange')
+result_table.tag_configure('oddrow', background='orange')
+result_table.tag_configure('evenrow', background='lightyellow')
+result_table.tag_configure('rowbg', background='lightyellow')
 
 window_1.mainloop()
 disconnect_from_database(database)
