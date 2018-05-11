@@ -251,8 +251,8 @@ def export_to_xls(data_as_list):
             col += 1
             worksheet.write_row(col, row, data_as_list)
 
-            workbook.close()
-            messagebox.showinfo('ZAPISANO', "ZAPISANO w Lokalizacji: {}".format(save_directory))
+        workbook.close()
+        messagebox.showinfo('ZAPISANO', "ZAPISANO w Lokalizacji: {}".format(save_directory))
 
     except IOError:
         messagebox.showinfo("ANULOWANO", "ANULOWANO ZAPIS")
