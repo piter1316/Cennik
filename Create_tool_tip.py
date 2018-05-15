@@ -3,7 +3,7 @@ import tkinter as tk
 
 class Create_tool_tip(object):
 
-    def __init__(self, widget, text='widget info', backround='white', fg='black'):
+    def __init__(self, widget: object, text: object = 'widget info', backround: object = 'white', fg: object = 'black') -> object:
         self.widget = widget
         self.text = text
         self.background = backround
