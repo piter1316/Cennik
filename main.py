@@ -245,7 +245,7 @@ def get_tables_list():
 
 
 def get_tables_list_to_add_data():
-    cursor.execute("SHOW TABLES in b2b_robocza LIKE '\__%' ")
+    cursor.execute("SHOW TABLES in b2b_robocza LIKE '\__%Cennik' ")
     tables = cursor.fetchall()
     list_items: List[Any] = []
 
@@ -306,7 +306,7 @@ def clear_multiple_input_field():
     multiple_input_field.delete("1.0", tk.END)
 
 
-def open_new_window():
+def open_add_window():
     add_window.deiconify()
     add_window.focus_set()
 
@@ -318,7 +318,7 @@ def close_add_window():
 def add_data_to_database():
     if database is None:
         messagebox.showinfo("!!!", "BRAK POŁĄCZENIA")
-        open_new_window()
+        open_add_window()
     else:
         kod_towaru = kod_towaru_input_field.get()
         kontrahent_kod = kontrahent_input_field.get()
@@ -342,7 +342,7 @@ def add_data_to_database():
 
         if kod_towaru is "" or kontrahent_kod is "" or kontrahent_cennik is "":
             messagebox.showerror('Puste pola', 'Wypełnij pola')
-            open_new_window()
+            open_add_window()
         else:
 
             try:
@@ -353,14 +353,12 @@ def add_data_to_database():
 
             if isinstance(cena_katalogowa, str):
                 messagebox.showinfo('Błędny format CENY', 'POPPRAW CENĘ')
-                open_new_window()
+                open_add_window()
             else:
-
-                if waluta not in ['CHF', 'EUR', 'HUF', 'RON', 'USD'] or waluta_koncowa not in ['CHF', 'EUR', 'HUF',
-                                                                                               'RON',
-                                                                                               'USD']:
+                currencies = ['CHF', 'EUR', 'HUF', 'RON', 'USD']
+                if waluta not in currencies or waluta_koncowa not in currencies:
                     messagebox.showinfo('Błędna waluta', 'SPRAWDŻ WALUTĘ ')
-                    open_new_window()
+                    open_add_window()
 
                 else:
                     print('WALUTA OK'.format(waluta))
@@ -368,12 +366,12 @@ def add_data_to_database():
                     print(kod_towaru, kontrahent_kod, kontrahent_cennik, opis, cena_katalogowa, waluta, cena_koncowa,
                           waluta_koncowa, cennik)
 
-                    sql: str = "INSERT INTO " + "`" + "{}".format(
-                        cennik) + "`" + "(kodTowaru, kontrahentKod, kontrahentCennik, opis, cenaKatalogowa, walutaKatalogowa, cenaKoncowa, walutaKoncowa )" + \
-                               " VALUES ('{}','{}','{}','{}','{}','{}','{}','{}')".format(
-                                   kod_towaru, kontrahent_kod, kontrahent_cennik, opis, cena_katalogowa, waluta,
-                                   cena_koncowa,
-                                   waluta_koncowa)
+                    sql: str = "INSERT INTO " + "`" + "{}".format(cennik) + "`" \
+                               + "(kodTowaru, kontrahentKod, kontrahentCennik, opis, cenaKatalogowa, " \
+                                 "walutaKatalogowa, cenaKoncowa, walutaKoncowa )" \
+                               + " VALUES ('{}','{}','{}','{}','{}','{}','{}','{}')".format(
+                        kod_towaru, kontrahent_kod, kontrahent_cennik, opis,
+                        cena_katalogowa, waluta, cena_koncowa, waluta_koncowa)
                     try:
                         cursor.execute(sql)
                         database.commit()
@@ -389,8 +387,7 @@ def add_data_to_database():
                     except pymysql.err.IntegrityError:
                         messagebox.showerror("DUPLIKAT", "Duplicate entry for key 'PRIMARY'")
                         database.rollback()
-                        open_new_window()
-                        print('FAILED')
+                        open_add_window()
                         add_window.focus_get()
 
 
@@ -399,6 +396,8 @@ def click_add_data_to_database():
 
 
 def close_app():
+    if database is not None:
+        disconnect_from_database(database)
     add_window.destroy()
     main_window.destroy()
     exit(0)
@@ -496,7 +495,7 @@ export_button.config(state=tk.DISABLED)
 export_button.grid(sticky=tk.N)
 export_button_tip = Create_tool_tip(export_button, "Export do EXCELA", '#1D7044', 'white')
 
-add_data_button = button.set_button_with_text(bottom_field, "DODAJ towar do bazy", open_new_window, 0, 5)
+add_data_button = button.set_button_with_text(bottom_field, "DODAJ towar do bazy", open_add_window, 0, 5)
 
 restart_button_img = tk.PhotoImage(file='img/restart.png')
 restart_program_button = button.set_button_with_img(top_field, 30, 20, restart_button_img, restart_program, 0, 2, 2)
@@ -559,15 +558,11 @@ waluta_koncowa_input_field = set_input_field(add_window_top_field, 9, 2, 2, tk.S
 
 wybierz_cenik_Label = set_label(add_window_top_field, "WYBIERZ CENNIK", 10, 1, '#c7d4d1')
 
-save_data_button = button.set_button_with_text(add_window_top_field, "DODAJ", click_add_data_to_database, 11, 1)
+save_data_button = button.set_button_with_text(add_window_top_field, "DODAJ", click_add_data_to_database, 10, 3)
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
+
 if database is None:
-    option_menu_value = tk.StringVar(main_window)
-    option_menu_value.set("WYBÓR CENNIKA")
-    tables_list_main_window = tk.OptionMenu(top_field, option_menu_value, *['CENNIK_1', 'CENNIK_2'])
-    tables_list_main_window.grid(row=0, column=3, padx=5, sticky=tk.N)
-    tables_list_tip = Create_tool_tip(tables_list_main_window, 'Wybierz cennik', 'yellow')
 
     add_option_menu_value = tk.StringVar(add_window_top_title)
     add_option_menu_value.set("Wybór Tabeli")
@@ -575,9 +570,8 @@ if database is None:
     tables_list_add_window.grid(row=10, column=2, padx=5, sticky=tk.N)
     tables_list_add_window_tip = Create_tool_tip(tables_list_add_window, 'Wybierz Tabele', 'yellow')
 
-
 else:
-    option_menu_value = tk.StringVar(main_window)
+    option_menu_value = tk.StringVar(top_field)
     option_menu_value.set(get_tables_list()[0])
     tables_list = tk.OptionMenu(top_field, option_menu_value, *get_tables_list())
     tables_list.grid(row=0, column=3, padx=5, sticky=tk.N)
@@ -590,8 +584,3 @@ else:
     tables_list_add_window_tip = Create_tool_tip(tables_list, 'Wybierz Tabele', 'yellow')
 
 main_window.mainloop()
-
-try:
-    disconnect_from_database(database)
-except Exception:
-    pass
