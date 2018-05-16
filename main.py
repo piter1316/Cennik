@@ -18,7 +18,6 @@ even = 0
 data: List[Any] = []
 how_many_added = 0
 just_opened = 0
-first_search = True
 
 
 def connect_to_database(url, user, password, data_base_name):
@@ -563,6 +562,11 @@ save_data_button = button.set_button_with_text(add_window_top_field, "DODAJ", cl
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
 if database is None:
+    option_menu_value = tk.StringVar(top_field)
+    option_menu_value.set("WYBÓR CENNIKA")
+    tables_list = tk.OptionMenu(top_field, option_menu_value, *['Cennik 1', 'Cennik 2'])
+    tables_list.grid(row=0, column=3, padx=5, sticky=tk.N)
+    tables_list_main_window_tip = Create_tool_tip(tables_list, 'Wybierz cennik', 'yellow')
 
     add_option_menu_value = tk.StringVar(add_window_top_title)
     add_option_menu_value.set("Wybór Tabeli")
