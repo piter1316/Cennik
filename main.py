@@ -10,6 +10,7 @@ import pymysql
 import xlsxwriter
 
 import button
+import top_window
 import window
 from Create_tool_tip import Create_tool_tip
 
@@ -45,9 +46,10 @@ def set_label(frame, text, row, column, bg):
     return label
 
 
-def set_input_field(frame, row, column, padx, relief):
+def set_input_field(frame, row, column, padx, relief, width):
     field = tk.Entry(frame, relief=relief)
     field.grid(row=row, column=column, padx=padx)
+    field.config(width=width)
     return field
 
 
@@ -307,7 +309,7 @@ def clear_multiple_input_field():
 
 def open_add_window():
     add_window.deiconify()
-    add_window.focus_set()
+    kod_towaru_input_field.focus_set()
 
 
 def close_add_window():
@@ -340,31 +342,23 @@ def add_data_to_database():
             waluta_koncowa = waluta
 
         if kod_towaru is "" or kontrahent_kod is "" or kontrahent_cennik is "":
-            messagebox.showerror('Puste pola', 'Wypełnij pola')
-            open_add_window()
+            show_info_label_for_add_window("WYPEŁNIJ BRAKUJĄCE POLA!")
         else:
 
             try:
                 cena_katalogowa = float(cena_katalogowa)
             except ValueError:
-                print("niepoprawny format ceny")
-                print(type(cena_katalogowa))
+                pass
 
             if isinstance(cena_katalogowa, str):
-                messagebox.showinfo('Błędny format CENY', 'POPPRAW CENĘ')
-                open_add_window()
+                show_info_label_for_add_window("Błędny format CENY!!! POPPRAW CENĘ")
+
             else:
                 currencies = ['CHF', 'EUR', 'HUF', 'RON', 'USD']
                 if waluta not in currencies or waluta_koncowa not in currencies:
-                    messagebox.showinfo('Błędna waluta', 'SPRAWDŻ WALUTĘ ')
-                    open_add_window()
+                    show_info_label_for_add_window("OBSŁUGIWANE WALUTY:\nCHF EUR HUF RON USD ")
 
                 else:
-                    print('WALUTA OK'.format(waluta))
-
-                    print(kod_towaru, kontrahent_kod, kontrahent_cennik, opis, cena_katalogowa, waluta, cena_koncowa,
-                          waluta_koncowa, cennik)
-
                     sql: str = "INSERT INTO " + "`" + "{}".format(cennik) + "`" \
                                + "(kodTowaru, kontrahentKod, kontrahentCennik, opis, cenaKatalogowa, " \
                                  "walutaKatalogowa, cenaKoncowa, walutaKoncowa )" \
@@ -374,7 +368,9 @@ def add_data_to_database():
                     try:
                         cursor.execute(sql)
                         database.commit()
-                        print('done')
+                        add_window_info_label = set_label(add_window_bottom_field,
+                                                          "POMYŚLNIE DODANO {} DO BAZY DANYCH!!".format(kod_towaru),
+                                                          0, 0, '#c7d4d1')
                         kod_towaru_input_field.delete(0, 'end')
                         kontrahent_input_field.delete(0, 'end')
                         kontrahent_cenni_input_field.delete(0, 'end')
@@ -383,11 +379,12 @@ def add_data_to_database():
                         waluta_input_field.delete(0, 'end')
                         cena_koncowa_input_field.delete(0, 'end')
                         waluta_koncowa_input_field.delete(0, 'end')
+                        kod_towaru_input_field.focus_set()
+                        add_window.after(3000, add_window_info_label.destroy)
+
                     except pymysql.err.IntegrityError:
-                        messagebox.showerror("DUPLIKAT", "Duplicate entry for key 'PRIMARY'")
+                        show_info_label_for_add_window("DUPLIKAT")
                         database.rollback()
-                        open_add_window()
-                        add_window.focus_get()
 
 
 def click_add_data_to_database():
@@ -405,6 +402,11 @@ def close_app():
 def restart_program():
     python = sys.executable
     os.execl(python, python, *sys.argv)
+
+
+def show_info_label_for_add_window(text):
+    label = set_label(add_window_bottom_field, text, 0, 0, '#c7d4d1')
+    add_window.after(3000, label.destroy)
 
 
 # main
@@ -431,7 +433,7 @@ bottom_field = tk.Frame(main_window)
 bottom_field.pack(side=tk.TOP, fill=tk.Y)
 bottom_field.configure(background='#c6c3c0')
 
-multiple_input_field = set_multiple_input_field(entry_and_button_field, 0, 2, 2, tk.RAISED, 30, 5)
+multiple_input_field = set_multiple_input_field(entry_and_button_field, 0, 2, 0, tk.RAISED, 32, 5)
 multiple_input_field.bind('<Control-Return>', press_enter_to_perform_multiple_search)
 multiple_input_field.focus_set()
 
@@ -462,7 +464,7 @@ search_text_label.grid(sticky=tk.N)
 
 info_label_img = tk.PhotoImage(file='img/info.png')
 info_label = tk.Label(entry_and_button_field, image=info_label_img, height=20, width=20)
-info_label.grid(row=0, column=1, sticky=tk.N)
+info_label.grid(row=0, column=1, sticky=tk.N, padx=4)
 info_label.configure(background='#c6c3c0')
 info_label_tip = Create_tool_tip(info_label,
                                  "CLR + V aby wkleić \n"
@@ -494,11 +496,16 @@ export_button.config(state=tk.DISABLED)
 export_button.grid(sticky=tk.N)
 export_button_tip = Create_tool_tip(export_button, "Export do EXCELA", '#1D7044', 'white')
 
-add_data_button = button.set_button_with_text(bottom_field, "DODAJ towar do bazy", open_add_window, 0, 5)
 
+add_data_button_img = tk.PhotoImage(file='img/database.png')
+add_data_button = button.set_button_with_img(bottom_field, 20, 20, add_data_button_img, open_add_window, 0, 5)
+add_data_button_tip = Create_tool_tip(add_data_button, "Dodaj produkt do bazy", "#42C0FB", "white")
 restart_button_img = tk.PhotoImage(file='img/restart.png')
-restart_program_button = button.set_button_with_img(top_field, 30, 20, restart_button_img, restart_program, 0, 2, 2)
+restart_program_button = button.set_button_with_img(entry_and_button_field, 30, 30,
+                                                    restart_button_img, restart_program, 0, 7)
+restart_program_button.grid(sticky=tk.N)
 restart_button_tip = Create_tool_tip(restart_program_button, 'Odśwież połączenie')
+
 
 # table with query results
 set_result_table(result_table)
@@ -516,48 +523,52 @@ result_table.tag_configure('evenrow', background='#FFEBCA')
 result_table.tag_configure('empty', background='lightcoral')
 
 # add window
-add_window = window.set_window("Dodawanie produktu do bazy", 400, 300, '#c7d4d1')
+add_window = top_window.set_window("...::: WPROWADŹ DANE :::...", 380, 250, '#c7d4d1')
+
 add_window.withdraw()
 add_window.protocol("WM_DELETE_WINDOW", close_add_window)
 
-add_window_top_title_field = tk.Frame(add_window)
-add_window_top_title_field.grid(sticky=tk.N)
-add_window_top_title = set_label(add_window_top_title_field, '...::: WPROWADŹ DANE :::...', 1, 1, '#c7d4d1')
+add_window_middle_field = tk.Frame(add_window)
+add_window_middle_field.grid(sticky=tk.N)
+add_window_middle_field.configure(bg='#c7d4d1')
 
-add_window_top_title.pack(anchor=tk.CENTER)
-add_window_top_field = tk.Frame(add_window)
-add_window_top_field.grid(sticky=tk.N)
-add_window_top_field.configure(bg='#c7d4d1')
+add_window_bottom_field = tk.Frame(add_window)
+add_window_bottom_field.grid(sticky=tk.N)
+add_window_bottom_field.configure(bg='#c7d4d1')
 
-kod_towaru_Label = set_label(add_window_top_field, "KOD TOWARU", 2, 1, '#c7d4d1')
 
-kod_towaru_input_field = set_input_field(add_window_top_field, 2, 2, 2, tk.SUNKEN)
+kod_towaru_Label = set_label(add_window_middle_field, "KOD TOWARU", 2, 1, '#c7d4d1')
+kod_towaru_input_field = set_input_field(add_window_middle_field, 2, 2, 2, tk.SUNKEN, 31)
 
-kontrahent_kod_Label = set_label(add_window_top_field, "KONTRAHENT KOD", 3, 1, '#c7d4d1')
-kontrahent_input_field = set_input_field(add_window_top_field, 3, 2, 2, tk.SUNKEN)
+kontrahent_kod_Label = set_label(add_window_middle_field, "KONTRAHENT KOD", 3, 1, '#c7d4d1')
+kontrahent_input_field = set_input_field(add_window_middle_field, 3, 2, 2, tk.SUNKEN, 31)
 
-kontrahent_cennik_Label = set_label(add_window_top_field, "KONTRAHENT CENNIK", 4, 1, '#c7d4d1')
-kontrahent_cenni_input_field = set_input_field(add_window_top_field, 4, 2, 2, tk.SUNKEN)
+kontrahent_cennik_Label = set_label(add_window_middle_field, "KONTRAHENT CENNIK", 4, 1, '#c7d4d1')
+kontrahent_cenni_input_field = set_input_field(add_window_middle_field, 4, 2, 2, tk.SUNKEN, 31)
 
-opis_Label = set_label(add_window_top_field, "OPIS", 5, 1, '#c7d4d1')
-opis_input_field = set_input_field(add_window_top_field, 5, 2, 2, tk.SUNKEN)
+opis_Label = set_label(add_window_middle_field, "OPIS", 5, 1, '#c7d4d1')
+opis_input_field = set_input_field(add_window_middle_field, 5, 2, 2, tk.SUNKEN, 31)
 
-cena_katalogowa_Label = set_label(add_window_top_field, "CENA KATALOGOWA", 6, 1, '#c7d4d1')
-cena_katalogowa_input_field = set_input_field(add_window_top_field, 6, 2, 2, tk.SUNKEN)
+cena_katalogowa_Label = set_label(add_window_middle_field, "CENA KATALOGOWA", 6, 1, '#c7d4d1')
+cena_katalogowa_input_field = set_input_field(add_window_middle_field, 6, 2, 2, tk.SUNKEN, 31)
 
-waluta_katalogowa_Label = set_label(add_window_top_field, "WALUTA", 7, 1, '#c7d4d1')
-waluta_input_field = set_input_field(add_window_top_field, 7, 2, 2, tk.SUNKEN)
+waluta_katalogowa_Label = set_label(add_window_middle_field, "WALUTA", 7, 1, '#c7d4d1')
+waluta_input_field = set_input_field(add_window_middle_field, 7, 2, 2, tk.SUNKEN, 31)
 waluta_input_field_tip = Create_tool_tip(waluta_input_field, 'CHF,EUR,HUF,RON,USD')
 
-cena_koncowa_Label = set_label(add_window_top_field, "CENA KOńCOWA", 8, 1, '#c7d4d1')
-cena_koncowa_input_field = set_input_field(add_window_top_field, 8, 2, 2, tk.SUNKEN)
+cena_koncowa_Label = set_label(add_window_middle_field, "CENA KOńCOWA", 8, 1, '#c7d4d1')
+cena_koncowa_input_field = set_input_field(add_window_middle_field, 8, 2, 2, tk.SUNKEN, 31)
 
-waluta_koncowa_Label = set_label(add_window_top_field, "WALUTA KOńCOWA", 9, 1, '#c7d4d1')
-waluta_koncowa_input_field = set_input_field(add_window_top_field, 9, 2, 2, tk.SUNKEN)
+waluta_koncowa_Label = set_label(add_window_middle_field, "WALUTA KOńCOWA", 9, 1, '#c7d4d1')
+waluta_koncowa_input_field = set_input_field(add_window_middle_field, 9, 2, 2, tk.SUNKEN, 31)
 
-wybierz_cenik_Label = set_label(add_window_top_field, "WYBIERZ CENNIK", 10, 1, '#c7d4d1')
+wybierz_cenik_Label = set_label(add_window_middle_field, "WYBIERZ CENNIK", 10, 1, '#c7d4d1')
 
-save_data_button = button.set_button_with_text(add_window_top_field, "DODAJ", click_add_data_to_database, 10, 3)
+
+save_data_button_img = tk.PhotoImage(file='img/add_button.png')
+save_data_button = button.set_button_with_img(add_window_middle_field, 20, 20,
+                                              save_data_button_img, click_add_data_to_database, 10, 3, 2)
+save_data_button_tip = Create_tool_tip(save_data_button, "DODAJ DO BAZY", "#0166FF", "white")
 
 database = connect_to_database('b2b.int-technics.pl', 'b2b_roboczy', 'b2b_roboczy', 'b2b_robocza')
 
@@ -566,25 +577,29 @@ if database is None:
     option_menu_value.set("WYBÓR CENNIKA")
     tables_list = tk.OptionMenu(top_field, option_menu_value, *['Cennik 1', 'Cennik 2'])
     tables_list.grid(row=0, column=3, padx=5, sticky=tk.N)
+    tables_list.config(width=35)
     tables_list_main_window_tip = Create_tool_tip(tables_list, 'Wybierz cennik', 'yellow')
 
-    add_option_menu_value = tk.StringVar(add_window_top_title)
+    add_option_menu_value = tk.StringVar(add_window_bottom_field)
     add_option_menu_value.set("Wybór Tabeli")
-    tables_list_add_window = tk.OptionMenu(add_window_top_field, add_option_menu_value, *['TABELA1', 'TABELA1', ])
-    tables_list_add_window.grid(row=10, column=2, padx=5, sticky=tk.N)
+    tables_list_add_window = tk.OptionMenu(add_window_middle_field, add_option_menu_value, *['TABELA1', 'TABELA1', ])
+    tables_list_add_window.grid(row=10, column=2, padx=2, sticky=tk.N)
     tables_list_add_window_tip = Create_tool_tip(tables_list_add_window, 'Wybierz Tabele', 'yellow')
 
 else:
     option_menu_value = tk.StringVar(top_field)
     option_menu_value.set(get_tables_list()[0])
     tables_list = tk.OptionMenu(top_field, option_menu_value, *get_tables_list())
-    tables_list.grid(row=0, column=3, padx=5, sticky=tk.N)
+    tables_list.grid(row=0, column=3, padx=2, sticky=tk.N)
+    tables_list.config(width=35)
     tables_list_main_window_tip = Create_tool_tip(tables_list, 'Wybierz cennik', 'yellow')
 
-    add_option_menu_value = tk.StringVar(add_window_top_title)
+    add_option_menu_value = tk.StringVar(add_window_bottom_field)
     add_option_menu_value.set(get_tables_list_to_add_data()[0])
-    tables_list = tk.OptionMenu(add_window_top_field, add_option_menu_value, *get_tables_list_to_add_data())
-    tables_list.grid(row=10, column=2, padx=5, sticky=tk.N)
-    tables_list_add_window_tip = Create_tool_tip(tables_list, 'Wybierz Tabele', 'yellow')
+    tables_list_add_window = tk.OptionMenu(add_window_middle_field,
+                                           add_option_menu_value, *get_tables_list_to_add_data())
+    tables_list_add_window.grid(row=10, column=2, padx=5, sticky=tk.N)
+    tables_list_add_window_add_window_tip = Create_tool_tip(tables_list_add_window, 'Wybierz Tabele', 'yellow')
+    tables_list_add_window.config(width=25)
 
 main_window.mainloop()
