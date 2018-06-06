@@ -322,6 +322,8 @@ def add_data_to_database():
         open_add_window()
     else:
         kod_towaru = kod_towaru_input_field.get()
+        kod_towaru = secure_sql_query(kod_towaru)
+        kod_towaru = kod_towaru.replace("\n","")
         kontrahent_kod = kontrahent_input_field.get()
         kontrahent_cennik = kontrahent_cenni_input_field.get()
         opis = opis_input_field.get()
