@@ -104,6 +104,7 @@ def secure_sql_query(args):
     kod_towaru = kod_towaru.replace("$", "")
     kod_towaru = kod_towaru.replace("\r", "")
     kod_towaru = kod_towaru.replace("!", "")
+    kod_towaru = kod_towaru.replace('\u016f','-')
     return kod_towaru
 
 
@@ -134,6 +135,7 @@ def insert_search_into_table(limit):
                 rabat = row[10]
                 z_dnia = row[11]
                 cena_kon_eur = row[9]
+                moq= row[12]
 
                 if cena_katalogowa_eur is not None:
                     cena_katalogowa_eur = round(cena_katalogowa_eur, 2)
@@ -151,7 +153,7 @@ def insert_search_into_table(limit):
                     rabat = ""
 
                 product = [kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                           cena_kon_eur, z_dnia]
+                           cena_kon_eur, z_dnia,moq]
 
                 data.append(product)
                 added += 1
@@ -172,7 +174,7 @@ def insert_search_into_table(limit):
 def show_only_lowest_prices():
     insert_search_into_table("LIMIT 1")
     button_active(data)
-    calculate_sum()
+    # calculate_sum()
 
 
 def search():
@@ -220,7 +222,7 @@ def export_to_xls(data_as_list):
         worksheet.write_row(0, 0,
                             ["kodTowaru", "kontrahent", "cennik", "cenaKoncowa_WAL", "cenaKatalogowa_EUR", "Rabat",
 
-                             "cenaKoncowa_EUR", "zDnia"])
+                             "cenaKoncowa_EUR", "zDnia", "moq"])
 
         row = 0
 
