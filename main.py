@@ -356,7 +356,7 @@ def add_data_to_database():
                 show_info_label_for_add_window("Błędny format CENY!!! POPPRAW CENĘ")
 
             else:
-                currencies = ['CHF', 'EUR', 'HUF', 'RON', 'USD']
+                currencies = ['CHF', 'EUR', 'HUF', 'RON', 'USD', 'PLN']
                 if waluta not in currencies or waluta_koncowa not in currencies:
                     show_info_label_for_add_window("OBSŁUGIWANE WALUTY:\nCHF EUR HUF RON USD ")
 
