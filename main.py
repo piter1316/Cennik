@@ -152,7 +152,7 @@ def insert_search_into_table(limit):
                     rabat = ""
 
                 product = [kod_towaru, kontrahent, kontrahent_cennik, cena_koncowa, cena_katalogowa_eur, rabat,
-                           cena_kon_eur, z_dnia,moq]
+                           cena_kon_eur, z_dnia]
 
                 data.append(product)
                 added += 1
