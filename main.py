@@ -358,7 +358,7 @@ def add_data_to_database():
             else:
                 currencies = ['CHF', 'EUR', 'HUF', 'RON', 'USD', 'PLN']
                 if waluta not in currencies or waluta_koncowa not in currencies:
-                    show_info_label_for_add_window("OBSŁUGIWANE WALUTY:\nCHF EUR HUF RON USD ")
+                    show_info_label_for_add_window("OBSŁUGIWANE WALUTY:\nCHF EUR HUF RON USD PLN ")
 
                 else:
                     sql: str = "INSERT INTO " + "`" + "{}".format(cennik) + "`" \
@@ -556,7 +556,7 @@ cena_katalogowa_input_field = set_input_field(add_window_middle_field, 6, 2, 2, 
 
 waluta_katalogowa_Label = set_label(add_window_middle_field, "WALUTA", 7, 1, '#c7d4d1')
 waluta_input_field = set_input_field(add_window_middle_field, 7, 2, 2, tk.SUNKEN, 31)
-waluta_input_field_tip = Create_tool_tip(waluta_input_field, 'CHF,EUR,HUF,RON,USD')
+waluta_input_field_tip = Create_tool_tip(waluta_input_field, 'CHF,EUR,HUF,RON,USD,PLN')
 
 cena_koncowa_Label = set_label(add_window_middle_field, "CENA KOńCOWA", 8, 1, '#c7d4d1')
 cena_koncowa_input_field = set_input_field(add_window_middle_field, 8, 2, 2, tk.SUNKEN, 31)
